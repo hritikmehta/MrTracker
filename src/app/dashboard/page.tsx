@@ -239,11 +239,35 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-see-all:hover { background: rgba(255,255,255,0.32); }
 
 /* ── Heatmap ───────────────────────────────────────────── */
-/* Card inner: grid left, stats right */
-.v1-heatmap-body {
-  display: flex; gap: 36px; align-items: flex-start;
+
+/* Subheader row: "Last 30 days" left | "Less ◻◻◻ More" right */
+.v1-heatmap-subheader {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
 }
-.v1-heatmap-grid-wrap { flex: none; }
+.v1-heatmap-period {
+  font-size: 10px; font-weight: 300; letter-spacing: 0.04em;
+  color: rgba(45,45,45,0.38);
+}
+.v1-heatmap-legend {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: rgba(45,45,45,0.38);
+}
+.v1-heatmap-legend .v1-heat-cell {
+  width: 10px; height: 10px; cursor: default; flex-shrink: 0;
+}
+.v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
+.v1-heatmap-legend .v1-heat-cell::after { display: none; }
+
+/* Body: grid half (left, centered) | stats half (right) */
+.v1-heatmap-body {
+  display: flex; align-items: flex-start; gap: 0;
+}
+/* Grid occupies left 50% — grid itself is centered inside */
+.v1-heatmap-grid-wrap {
+  flex: 1;
+  display: flex; justify-content: center;
+}
 .v1-heatmap-grid {
   display: grid;
   grid-template-rows: repeat(3, 13px);
@@ -276,29 +300,12 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heat-1 { background: rgba(255,255,255,0.38); }
 .v1-heat-2 { background: rgba(255,255,255,0.68); }
 .v1-heat-3 { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.45); }
-.v1-heatmap-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 8px;
-}
-.v1-heatmap-period {
-  font-size: 10px; font-weight: 300; letter-spacing: 0.04em;
-  color: rgba(45,45,45,0.38);
-}
-.v1-heatmap-legend {
-  display: flex; align-items: center; gap: 3px;
-  font-size: 10px; color: rgba(45,45,45,0.38);
-}
-.v1-heatmap-legend .v1-heat-cell {
-  width: 10px; height: 10px;
-  cursor: default; flex-shrink: 0;
-}
-.v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
-.v1-heatmap-legend .v1-heat-cell::after { display: none; }
 
-/* Streak stats panel */
+/* Stats occupy right 50% — starts at center, aligns above CTA card */
 .v1-heatmap-stats {
+  flex: 1;
   display: flex; gap: 28px; align-items: flex-start;
-  padding-top: 0; flex-wrap: wrap;
+  padding-top: 0;
 }
 .v1-heatmap-stat { display: flex; flex-direction: column; gap: 3px; }
 .v1-heatmap-stat-val {
@@ -310,14 +317,18 @@ body:has(.v1-root) { background: #a69c97; }
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 
-/* Mobile: stack stats below grid */
-@media (max-width: 600px) {
-  .v1-heatmap-body { flex-direction: column; gap: 16px; }
-  .v1-heatmap-stats { gap: 20px; }
-  .v1-heatmap-stat-val { font-size: 20px; }
+/* Mobile (≤860px): grid centered, stats horizontal row below */
+@media (max-width: 860px) {
+  .v1-heatmap-body {
+    flex-direction: column; align-items: center; gap: 20px;
+  }
+  .v1-heatmap-grid-wrap { flex: none; justify-content: center; }
+  .v1-heatmap-stats { flex: none; gap: 24px; }
 }
-.v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
-.v1-heatmap-legend .v1-heat-cell::after { display: none; }
+@media (max-width: 600px) {
+  .v1-heatmap-stat-val { font-size: 20px; }
+  .v1-heatmap-stats { gap: 18px; }
+}
 
 /* ── Shortcut CTA Card ─────────────────────────────────── */
 .v1-cta-tracking-label {
@@ -603,13 +614,17 @@ export default function DashboardPage() {
   // Last 30 days: 3 rows × 10 cols, column-flow (oldest top-left → newest bottom-right)
   const heatData = useRef(
     Array.from({ length: 30 }, (_, i) => {
+      // i=0 → 29 days ago, i=29 → today
+      const d = new Date()
+      d.setDate(d.getDate() - (29 - i))
+      const dateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
       const bias = i >= 26 ? 0.82 : 0.52
       const active = Math.random() < bias
       const level = active
         ? (Math.random() < 0.35 ? 1 : Math.random() < 0.55 ? 2 : 3) as 1 | 2 | 3
         : 0 as const
       const count = level === 0 ? 0 : level === 1 ? Math.floor(Math.random() * 2) + 1 : level === 2 ? Math.floor(Math.random() * 3) + 2 : Math.floor(Math.random() * 4) + 4
-      return { level, count }
+      return { level, count, dateLabel }
     })
   )
 
@@ -702,28 +717,32 @@ export default function DashboardPage() {
         {/* Card 1 — Consistency Streak (last 30 days, 3×10) */}
         <div className="v1-card v1-card-heatmap">
           <div className="v1-card-label">Consistency Streak</div>
+
+          {/* Subheader: Last 30 days [left] · Less→More [right] */}
+          <div className="v1-heatmap-subheader">
+            <span className="v1-heatmap-period">Last 30 days</span>
+            <div className="v1-heatmap-legend">
+              <span>Less</span>
+              {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
+              <span>More</span>
+            </div>
+          </div>
+
+          {/* Body: grid centered in left half | stats in right half */}
           <div className="v1-heatmap-body">
-            {/* Grid + footer */}
             <div className="v1-heatmap-grid-wrap">
               <div className="v1-heatmap-grid" role="img" aria-label="30-day activity heatmap">
                 {heatData.current.map((cell, i) => (
                   <div
                     key={i}
                     className={`v1-heat-cell v1-heat-${cell.level}`}
-                    data-tip={cell.count === 0 ? 'No logs' : `${cell.count} log${cell.count !== 1 ? 's' : ''}`}
+                    data-tip={`${cell.dateLabel}: ${cell.count === 0 ? 'No logs' : `${cell.count} log${cell.count !== 1 ? 's' : ''}`}`}
                   />
                 ))}
               </div>
-              <div className="v1-heatmap-footer">
-                <span className="v1-heatmap-period">Last 30 days</span>
-                <div className="v1-heatmap-legend">
-                  <span>Less</span>
-                  {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
-                  <span>More</span>
-                </div>
-              </div>
             </div>
-            {/* Streak stats */}
+
+            {/* Stats — right 50% on desktop, below on mobile */}
             <div className="v1-heatmap-stats">
               <div className="v1-heatmap-stat">
                 <span className="v1-heatmap-stat-val">7</span>
