@@ -239,15 +239,20 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-see-all:hover { background: rgba(255,255,255,0.32); }
 
 /* ── Heatmap ───────────────────────────────────────────── */
+/* Card inner: grid left, stats right */
+.v1-heatmap-body {
+  display: flex; gap: 36px; align-items: flex-start;
+}
+.v1-heatmap-grid-wrap { flex: none; }
 .v1-heatmap-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: repeat(4, 38px);
-  grid-auto-flow: row;
-  gap: 6px; width: 100%;
+  grid-template-rows: repeat(3, 13px);
+  grid-auto-flow: column;
+  grid-auto-columns: 13px;
+  gap: 3px; width: max-content;
 }
 .v1-heat-cell {
-  border-radius: 8px; width: 100%; height: 100%;
+  width: 13px; height: 13px; border-radius: 3px;
   cursor: pointer; transition: transform 0.12s;
   position: relative;
 }
@@ -265,27 +270,51 @@ body:has(.v1-root) { background: #a69c97; }
   z-index: 50;
   box-shadow: 0 4px 12px rgba(0,0,0,0.18);
 }
-.v1-heat-cell:hover { transform: scale(1.30); }
+.v1-heat-cell:hover { transform: scale(1.5); }
 .v1-heat-cell:hover::after { opacity: 1; }
 .v1-heat-0 { background: rgba(255,255,255,0.10); }
 .v1-heat-1 { background: rgba(255,255,255,0.38); }
 .v1-heat-2 { background: rgba(255,255,255,0.68); }
-.v1-heat-3 { background: #fff; box-shadow: 0 0 7px rgba(255,255,255,0.5); }
+.v1-heat-3 { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.45); }
 .v1-heatmap-footer {
   display: flex; align-items: center; justify-content: space-between;
-  margin-top: 14px;
+  margin-top: 8px;
 }
 .v1-heatmap-period {
   font-size: 10px; font-weight: 300; letter-spacing: 0.04em;
   color: rgba(45,45,45,0.38);
 }
 .v1-heatmap-legend {
-  display: flex; align-items: center; gap: 4px;
+  display: flex; align-items: center; gap: 3px;
   font-size: 10px; color: rgba(45,45,45,0.38);
 }
 .v1-heatmap-legend .v1-heat-cell {
-  width: 10px; height: 10px; aspect-ratio: 1;
+  width: 10px; height: 10px;
   cursor: default; flex-shrink: 0;
+}
+.v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
+.v1-heatmap-legend .v1-heat-cell::after { display: none; }
+
+/* Streak stats panel */
+.v1-heatmap-stats {
+  display: flex; gap: 28px; align-items: flex-start;
+  padding-top: 0; flex-wrap: wrap;
+}
+.v1-heatmap-stat { display: flex; flex-direction: column; gap: 3px; }
+.v1-heatmap-stat-val {
+  font-size: 26px; font-weight: 200; color: rgba(45,45,45,0.82);
+  letter-spacing: -0.03em; line-height: 1;
+}
+.v1-heatmap-stat-key {
+  font-size: 10px; font-weight: 300; color: rgba(45,45,45,0.38);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* Mobile: stack stats below grid */
+@media (max-width: 600px) {
+  .v1-heatmap-body { flex-direction: column; gap: 16px; }
+  .v1-heatmap-stats { gap: 20px; }
+  .v1-heatmap-stat-val { font-size: 20px; }
 }
 .v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
 .v1-heatmap-legend .v1-heat-cell::after { display: none; }
@@ -498,7 +527,6 @@ body:has(.v1-root) { background: #a69c97; }
   .v1-hero-sub { margin-bottom: 0; }
   .v1-bento { padding: 16px 16px 110px; gap: 12px; }
   .v1-card { padding: 20px 18px; border-radius: 22px; }
-  .v1-heatmap-grid { gap: 4px; }
   .v1-digest-value { font-size: 34px; }
   .v1-input-bar { padding: 16px 16px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .v1-input-field { font-size: 14px; }
@@ -572,14 +600,13 @@ export default function DashboardPage() {
     }
   }
 
-  // Last 4 weeks: 4 rows × 7 cols = 28 days, top-left oldest → bottom-right today
+  // Last 30 days: 3 rows × 10 cols, column-flow (oldest top-left → newest bottom-right)
   const heatData = useRef(
-    Array.from({ length: 28 }, (_, i) => {
-      // Last 3 days slightly more likely active for recency feel
-      const bias = i >= 25 ? 0.8 : 0.5
+    Array.from({ length: 30 }, (_, i) => {
+      const bias = i >= 26 ? 0.82 : 0.52
       const active = Math.random() < bias
       const level = active
-        ? (Math.random() < 0.4 ? 1 : Math.random() < 0.6 ? 2 : 3) as 1 | 2 | 3
+        ? (Math.random() < 0.35 ? 1 : Math.random() < 0.55 ? 2 : 3) as 1 | 2 | 3
         : 0 as const
       const count = level === 0 ? 0 : level === 1 ? Math.floor(Math.random() * 2) + 1 : level === 2 ? Math.floor(Math.random() * 3) + 2 : Math.floor(Math.random() * 4) + 4
       return { level, count }
@@ -672,24 +699,44 @@ export default function DashboardPage() {
       {/* ── Bento Grid ── */}
       <main className="v1-bento">
 
-        {/* Card 1 — Consistency Streak (last 4 weeks) */}
+        {/* Card 1 — Consistency Streak (last 30 days, 3×10) */}
         <div className="v1-card v1-card-heatmap">
           <div className="v1-card-label">Consistency Streak</div>
-          <div className="v1-heatmap-grid" role="img" aria-label="4-week activity heatmap">
-            {heatData.current.map((cell, i) => (
-              <div
-                key={i}
-                className={`v1-heat-cell v1-heat-${cell.level}`}
-                data-tip={cell.count === 0 ? 'No logs' : `${cell.count} log${cell.count !== 1 ? 's' : ''}`}
-              />
-            ))}
-          </div>
-          <div className="v1-heatmap-footer">
-            <span className="v1-heatmap-period">Last 4 weeks</span>
-            <div className="v1-heatmap-legend">
-              <span>Less</span>
-              {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
-              <span>More</span>
+          <div className="v1-heatmap-body">
+            {/* Grid + footer */}
+            <div className="v1-heatmap-grid-wrap">
+              <div className="v1-heatmap-grid" role="img" aria-label="30-day activity heatmap">
+                {heatData.current.map((cell, i) => (
+                  <div
+                    key={i}
+                    className={`v1-heat-cell v1-heat-${cell.level}`}
+                    data-tip={cell.count === 0 ? 'No logs' : `${cell.count} log${cell.count !== 1 ? 's' : ''}`}
+                  />
+                ))}
+              </div>
+              <div className="v1-heatmap-footer">
+                <span className="v1-heatmap-period">Last 30 days</span>
+                <div className="v1-heatmap-legend">
+                  <span>Less</span>
+                  {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
+                  <span>More</span>
+                </div>
+              </div>
+            </div>
+            {/* Streak stats */}
+            <div className="v1-heatmap-stats">
+              <div className="v1-heatmap-stat">
+                <span className="v1-heatmap-stat-val">7</span>
+                <span className="v1-heatmap-stat-key">Day streak</span>
+              </div>
+              <div className="v1-heatmap-stat">
+                <span className="v1-heatmap-stat-val">14</span>
+                <span className="v1-heatmap-stat-key">Best streak</span>
+              </div>
+              <div className="v1-heatmap-stat">
+                <span className="v1-heatmap-stat-val">21</span>
+                <span className="v1-heatmap-stat-key">Logs this month</span>
+              </div>
             </div>
           </div>
         </div>
