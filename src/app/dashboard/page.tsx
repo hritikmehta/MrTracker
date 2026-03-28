@@ -212,10 +212,11 @@ body:has(.v1-root) { background: #a69c97; }
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
   pointer-events: none; border-radius: 1px;
 }
-.v1-card-heatmap { grid-column: 1 / span 8; animation-delay: 0.08s; }
-.v1-card-cta     { grid-column: 9 / span 4; animation-delay: 0.14s; }
-.v1-card-logs    { grid-column: 1 / span 6; animation-delay: 0.20s; }
-.v1-card-digest  { grid-column: 7 / span 6; animation-delay: 0.26s; }
+/* Desktop: Streak full-width → Digest | CTA → Logs full-width */
+.v1-card-heatmap { grid-column: 1 / span 12; animation-delay: 0.08s; }
+.v1-card-digest  { grid-column: 1 / span 6;  animation-delay: 0.14s; }
+.v1-card-cta     { grid-column: 7 / span 6;  animation-delay: 0.20s; }
+.v1-card-logs    { grid-column: 1 / span 12; animation-delay: 0.26s; }
 
 .v1-card-label {
   font-size: 10px; font-weight: 400; letter-spacing: 0.10em;
@@ -240,13 +241,13 @@ body:has(.v1-root) { background: #a69c97; }
 /* ── Heatmap ───────────────────────────────────────────── */
 .v1-heatmap-grid {
   display: grid;
-  grid-template-rows: repeat(7, 16px);
-  grid-auto-flow: column;
-  grid-auto-columns: 16px;
-  gap: 4px; width: max-content;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(4, 38px);
+  grid-auto-flow: row;
+  gap: 6px; width: 100%;
 }
 .v1-heat-cell {
-  width: 16px; height: 16px; border-radius: 4px;
+  border-radius: 8px; width: 100%; height: 100%;
   cursor: pointer; transition: transform 0.12s;
   position: relative;
 }
@@ -270,12 +271,22 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heat-1 { background: rgba(255,255,255,0.38); }
 .v1-heat-2 { background: rgba(255,255,255,0.68); }
 .v1-heat-3 { background: #fff; box-shadow: 0 0 7px rgba(255,255,255,0.5); }
+.v1-heatmap-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 14px;
+}
+.v1-heatmap-period {
+  font-size: 10px; font-weight: 300; letter-spacing: 0.04em;
+  color: rgba(45,45,45,0.38);
+}
 .v1-heatmap-legend {
   display: flex; align-items: center; gap: 4px;
-  justify-content: flex-end; margin-top: 12px;
   font-size: 10px; color: rgba(45,45,45,0.38);
 }
-.v1-heatmap-legend .v1-heat-cell { cursor: default; }
+.v1-heatmap-legend .v1-heat-cell {
+  width: 10px; height: 10px; aspect-ratio: 1;
+  cursor: default; flex-shrink: 0;
+}
 .v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
 .v1-heatmap-legend .v1-heat-cell::after { display: none; }
 
@@ -487,8 +498,7 @@ body:has(.v1-root) { background: #a69c97; }
   .v1-hero-sub { margin-bottom: 0; }
   .v1-bento { padding: 16px 16px 110px; gap: 12px; }
   .v1-card { padding: 20px 18px; border-radius: 22px; }
-  .v1-heat-cell { width: 13px; height: 13px; }
-  .v1-heatmap-grid { grid-template-rows: repeat(7, 13px); grid-auto-columns: 13px; gap: 3px; }
+  .v1-heatmap-grid { gap: 4px; }
   .v1-digest-value { font-size: 34px; }
   .v1-input-bar { padding: 16px 16px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .v1-input-field { font-size: 14px; }
@@ -562,11 +572,15 @@ export default function DashboardPage() {
     }
   }
 
-  // Last 30 days: 7 rows × 5 cols = 35 slots (last 30 filled, first 5 empty)
+  // Last 4 weeks: 4 rows × 7 cols = 28 days, top-left oldest → bottom-right today
   const heatData = useRef(
-    Array.from({ length: 35 }, (_, i) => {
-      if (i < 5) return { level: 0 as const, count: 0 }
-      const level = Math.floor(Math.random() * 4) as 0 | 1 | 2 | 3
+    Array.from({ length: 28 }, (_, i) => {
+      // Last 3 days slightly more likely active for recency feel
+      const bias = i >= 25 ? 0.8 : 0.5
+      const active = Math.random() < bias
+      const level = active
+        ? (Math.random() < 0.4 ? 1 : Math.random() < 0.6 ? 2 : 3) as 1 | 2 | 3
+        : 0 as const
       const count = level === 0 ? 0 : level === 1 ? Math.floor(Math.random() * 2) + 1 : level === 2 ? Math.floor(Math.random() * 3) + 2 : Math.floor(Math.random() * 4) + 4
       return { level, count }
     })
@@ -658,10 +672,10 @@ export default function DashboardPage() {
       {/* ── Bento Grid ── */}
       <main className="v1-bento">
 
-        {/* Card 1 — Consistency Streak (last 30 days) */}
+        {/* Card 1 — Consistency Streak (last 4 weeks) */}
         <div className="v1-card v1-card-heatmap">
           <div className="v1-card-label">Consistency Streak</div>
-          <div className="v1-heatmap-grid" role="img" aria-label="30-day activity heatmap">
+          <div className="v1-heatmap-grid" role="img" aria-label="4-week activity heatmap">
             {heatData.current.map((cell, i) => (
               <div
                 key={i}
@@ -670,71 +684,17 @@ export default function DashboardPage() {
               />
             ))}
           </div>
-          <div className="v1-heatmap-legend">
-            <span>Less</span>
-            {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
-            <span>More</span>
+          <div className="v1-heatmap-footer">
+            <span className="v1-heatmap-period">Last 4 weeks</span>
+            <div className="v1-heatmap-legend">
+              <span>Less</span>
+              {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
+              <span>More</span>
+            </div>
           </div>
         </div>
 
-        {/* Card 2 — Tracking Options / Apple Shortcuts */}
-        <div className="v1-card v1-card-cta">
-          <div className="v1-cta-tracking-label">Tracking options</div>
-          <h3 className="v1-cta-title">Log without opening the app</h3>
-          <div className="v1-cta-steps">
-            <div className="v1-cta-step">
-              <span className="v1-cta-step-num">1</span>
-              Install the iOS Shortcut below
-            </div>
-            <div className="v1-cta-step">
-              <span className="v1-cta-step-num">2</span>
-              Say &ldquo;Hey Siri, run Tracker&rdquo;
-            </div>
-            <div className="v1-cta-step">
-              <span className="v1-cta-step-num">3</span>
-              Speak — AI logs everything
-            </div>
-          </div>
-          <p className="v1-cta-body">
-            Or tap an NFC sticker on your kitchen counter, gym bag, or desk — no need to open any app.
-          </p>
-          <a href="#" className="v1-cta-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" x2="12" y1="15" y2="3" />
-            </svg>
-            Download Shortcuts
-          </a>
-        </div>
-
-        {/* Card 3 — Your Logs */}
-        <div className="v1-card v1-card-logs">
-          <div className="v1-card-label-row">
-            <span className="v1-card-label">Your Logs</span>
-            <a href="#" className="v1-see-all">See all</a>
-          </div>
-          <div className="v1-logs-list">
-            {LOGS.map((log, i) => (
-              <div key={i} className="v1-log-item">
-                <div className="v1-log-raw">
-                  <span className="v1-log-quote">&ldquo;</span>
-                  {log.raw}
-                  <span className="v1-log-quote">&rdquo;</span>
-                </div>
-                <div className="v1-log-tags">
-                  {log.tags.map((tag, j) => <span key={j} className="v1-tag">{tag}</span>)}
-                </div>
-                <div className="v1-log-footer">
-                  <span className="v1-tag v1-tag-time">{log.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Card 4 — AI Digest */}
+        {/* Card 2 — AI Digest (desktop: col 1-6 row 2 | mobile: order 2) */}
         <div className="v1-card v1-card-digest">
           <div className="v1-card-label">AI Digest</div>
           <div className="v1-digest-body">
@@ -775,6 +735,63 @@ export default function DashboardPage() {
                   fill="url(#sg2)" />
               </svg>
             </div>
+          </div>
+        </div>
+
+        {/* Card 3 — Tracking Options (desktop: col 7-12 row 2 | mobile: order 3) */}
+        <div className="v1-card v1-card-cta">
+          <div className="v1-cta-tracking-label">Tracking options</div>
+          <h3 className="v1-cta-title">Log without opening the app</h3>
+          <div className="v1-cta-steps">
+            <div className="v1-cta-step">
+              <span className="v1-cta-step-num">1</span>
+              Install the iOS Shortcut below
+            </div>
+            <div className="v1-cta-step">
+              <span className="v1-cta-step-num">2</span>
+              Say &ldquo;Hey Siri, run Tracker&rdquo;
+            </div>
+            <div className="v1-cta-step">
+              <span className="v1-cta-step-num">3</span>
+              Speak — AI logs everything
+            </div>
+          </div>
+          <p className="v1-cta-body">
+            Or tap an NFC sticker on your kitchen counter, gym bag, or desk — no need to open any app.
+          </p>
+          <a href="#" className="v1-cta-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" x2="12" y1="15" y2="3" />
+            </svg>
+            Download Shortcuts
+          </a>
+        </div>
+
+        {/* Card 4 — Your Logs (desktop: col 1-12 row 3 | mobile: order 4) */}
+        <div className="v1-card v1-card-logs">
+          <div className="v1-card-label-row">
+            <span className="v1-card-label">Your Logs</span>
+            <a href="#" className="v1-see-all">See all</a>
+          </div>
+          <div className="v1-logs-list">
+            {LOGS.map((log, i) => (
+              <div key={i} className="v1-log-item">
+                <div className="v1-log-raw">
+                  <span className="v1-log-quote">&ldquo;</span>
+                  {log.raw}
+                  <span className="v1-log-quote">&rdquo;</span>
+                </div>
+                <div className="v1-log-tags">
+                  {log.tags.map((tag, j) => <span key={j} className="v1-tag">{tag}</span>)}
+                </div>
+                <div className="v1-log-footer">
+                  <span className="v1-tag v1-tag-time">{log.time}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
