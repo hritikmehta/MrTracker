@@ -301,11 +301,12 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heat-2 { background: rgba(255,255,255,0.68); }
 .v1-heat-3 { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.45); }
 
-/* Stats occupy right 50% — starts at center, aligns above CTA card */
+/* Stats — starts slightly left of center */
 .v1-heatmap-stats {
   flex: 1;
   display: flex; gap: 28px; align-items: flex-start;
   padding-top: 0;
+  margin-left: -72px;
 }
 .v1-heatmap-stat { display: flex; flex-direction: column; gap: 3px; }
 .v1-heatmap-stat-val {
@@ -323,7 +324,7 @@ body:has(.v1-root) { background: #a69c97; }
     flex-direction: column; align-items: center; gap: 20px;
   }
   .v1-heatmap-grid-wrap { flex: none; justify-content: center; }
-  .v1-heatmap-stats { flex: none; gap: 24px; }
+  .v1-heatmap-stats { flex: none; gap: 24px; margin-left: 0; }
 }
 @media (max-width: 600px) {
   .v1-heatmap-stat-val { font-size: 20px; }
