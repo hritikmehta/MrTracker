@@ -242,13 +242,16 @@ body:has(.v1-root) { background: #a69c97; }
 
 /* Two-column split at center: left = label+subheader+grid | right = stats */
 .v1-heatmap-two-col {
-  display: flex; align-items: center;
+  display: flex; align-items: flex-start;
+  gap: 32px; /* breathing room between the two halves */
 }
 .v1-heatmap-left {
   flex: 1; display: flex; flex-direction: column;
+  /* grid centres itself via align-self: center below */
 }
 .v1-heatmap-right {
-  flex: 1; display: flex; align-items: center;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: flex-start; gap: 12px;
 }
 
 /* Subheader: "Last 30 days" left | "Less ◻◻◻ More" right — scoped to left half */
@@ -270,13 +273,14 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
 .v1-heatmap-legend .v1-heat-cell::after { display: none; }
 
-/* Grid */
+/* Grid: 10 cols × 3 rows, left→right then next row */
 .v1-heatmap-grid {
   display: grid;
-  grid-template-rows: repeat(3, 13px);
-  grid-auto-flow: column;
-  grid-auto-columns: 13px;
+  grid-template-columns: repeat(10, 13px);
+  grid-auto-flow: row;
   gap: 3px; width: max-content;
+  align-self: center; /* centres grid horizontally inside left half */
+  margin-top: 2px;
 }
 .v1-heat-cell {
   width: 13px; height: 13px; border-radius: 3px;
@@ -318,12 +322,15 @@ body:has(.v1-root) { background: #a69c97; }
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 
-/* Mobile (≤860px): single column, grid + stats centered */
+/* Mobile (≤860px): single column */
 @media (max-width: 860px) {
-  .v1-heatmap-two-col { flex-direction: column; align-items: center; gap: 20px; }
-  .v1-heatmap-left { width: 100%; align-items: flex-start; }
-  .v1-heatmap-subheader { width: 100%; }
-  .v1-heatmap-right { width: 100%; justify-content: flex-start; }
+  .v1-heatmap-two-col {
+    flex-direction: column; align-items: flex-start; gap: 20px;
+  }
+  .v1-heatmap-left { width: 100%; }
+  .v1-heatmap-grid { align-self: center; } /* keep grid centred on mobile too */
+  .v1-heatmap-right { width: 100%; flex-direction: row; align-items: flex-end; gap: 24px; }
+  .v1-heatmap-right .v1-card-label { display: none; } /* hide "Stats" label on mobile — fits inline */
   .v1-heatmap-stats { gap: 24px; }
 }
 @media (max-width: 600px) {
@@ -743,6 +750,7 @@ export default function DashboardPage() {
 
             {/* RIGHT HALF: stats */}
             <div className="v1-heatmap-right">
+              <div className="v1-card-label">Stats</div>
               <div className="v1-heatmap-stats">
                 <div className="v1-heatmap-stat">
                   <span className="v1-heatmap-stat-val">7</span>
