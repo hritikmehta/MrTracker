@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
-import { createSupabaseServer } from '@/lib/supabase-server'
 
-export default async function Home() {
-  const supabase = await createSupabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
-  redirect(user ? '/dashboard' : '/login')
+// Root always lands on the dashboard.
+// Dashboard detects auth client-side — shows demo data when logged out,
+// real data when logged in. No forced redirect to /login.
+export default function Home() {
+  redirect('/dashboard')
 }

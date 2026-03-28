@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createSupabaseBrowser } from '@/lib/supabase'
 
 // ─── Content ────────────────────────────────────────────────────────────────
 const TYPEWRITER_PHRASES = [
@@ -36,7 +37,7 @@ const CSS = `
 body:has(.v1-root) { background: #a69c97; }
 
 /* ── Root ──────────────────────────────────────────────── */
-.v3 {
+.v1-root {
   min-height: 100dvh;
   background-color: #a69c97;
   font-family: 'Outfit', sans-serif;
@@ -44,6 +45,21 @@ body:has(.v1-root) { background: #a69c97; }
   position: relative;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ── Demo banner ────────────────────────────────────────── */
+.v1-demo-banner {
+  position: relative; z-index: 20;
+  text-align: center; padding: 7px 20px;
+  font-size: 11.5px; font-weight: 300; letter-spacing: 0.01em;
+  color: rgba(45,45,45,0.52);
+  background: rgba(255,255,255,0.10);
+  border-bottom: 1px solid rgba(255,255,255,0.13);
+}
+.v1-demo-link {
+  color: rgba(45,45,45,0.72); font-weight: 400;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.v1-demo-link:hover { color: #2d2d2d; }
 .v1-ambient {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   z-index: 0; pointer-events: none;
@@ -90,6 +106,18 @@ body:has(.v1-root) { background: #a69c97; }
   transition: background 0.2s;
 }
 .v1-signin-link:hover { background: rgba(255,255,255,0.22); }
+.v1-signout-btn {
+  font-size: 12px; font-weight: 300; color: rgba(45,45,45,0.55);
+  cursor: pointer; padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,0.20); border-radius: 999px;
+  background: transparent; font-family: 'Outfit', sans-serif;
+  transition: background 0.2s;
+}
+.v1-signout-btn:hover { background: rgba(255,255,255,0.14); }
+.v1-user-email {
+  font-size: 11.5px; font-weight: 300; color: rgba(45,45,45,0.45);
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* ── Hero ──────────────────────────────────────────────── */
 .v1-hero {
@@ -304,7 +332,7 @@ body:has(.v1-root) { background: #a69c97; }
 }
 .v1-log-quote { color: rgba(45,45,45,0.32); font-style: normal; }
 .v1-log-tags { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 4px; }
-.v1-log-footer { display: flex; justify-content: flex-end; padding-top: 2px; }
+.v1-log-footer { display: flex; justify-content: flex-end; padding-top: 6px; }
 .v1-tag {
   font-size: 11px; font-weight: 300; color: rgba(45,45,45,0.62);
   padding: 3px 9px; border-radius: 999px;
@@ -478,7 +506,7 @@ body:has(.v1-root) { background: #a69c97; }
 `
 
 // ─── Component ──────────────────────────────────────────────────────────────
-export default function V3Page() {
+export default function DashboardPage() {
   const [typeText, setTypeText] = useState('')
   const [charIdx, setCharIdx] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -487,6 +515,27 @@ export default function V3Page() {
   const [sending, setSending] = useState(false)
   const [logError, setLogError] = useState('')
   const [logSent, setLogSent] = useState(false)
+  const [user, setUser] = useState<{ email?: string } | null>(null)
+  const [authReady, setAuthReady] = useState(false)
+
+  // ── Auth detection (persists via Supabase cookie session)
+  useEffect(() => {
+    const supabase = createSupabaseBrowser()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+      setAuthReady(true)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowser()
+    await supabase.auth.signOut()
+    setUser(null)
+  }
 
   async function handleSend() {
     if (!inputText.trim() || sending) return
@@ -545,11 +594,28 @@ export default function V3Page() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="v1-ambient" aria-hidden="true" />
 
+      {/* ── Demo banner (shown only when logged out) ── */}
+      {authReady && !user && (
+        <div className="v1-demo-banner">
+          Viewing demo data —{' '}
+          <a href="/login" className="v1-demo-link">Sign in</a> to see your real logs
+        </div>
+      )}
+
       {/* ── Header ── */}
       <header className="v1-header">
         <span className="v1-logo-badge">MrTracker 1.0</span>
         <div className="v1-header-actions">
-          <a href="/login" className="v1-signin-link">Sign in</a>
+          {authReady && (
+            user ? (
+              <>
+                <span className="v1-user-email">{user.email}</span>
+                <button className="v1-signout-btn" onClick={handleSignOut}>Sign out</button>
+              </>
+            ) : (
+              <a href="/login" className="v1-signin-link">Sign in</a>
+            )
+          )}
           <button className="v1-icon-btn" aria-label="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
               <circle cx="12" cy="12" r="3" />
