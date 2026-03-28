@@ -240,10 +240,21 @@ body:has(.v1-root) { background: #a69c97; }
 
 /* ── Heatmap ───────────────────────────────────────────── */
 
-/* Subheader row: "Last 30 days" left | "Less ◻◻◻ More" right */
+/* Two-column split at center: left = label+subheader+grid | right = stats */
+.v1-heatmap-two-col {
+  display: flex; align-items: center;
+}
+.v1-heatmap-left {
+  flex: 1; display: flex; flex-direction: column;
+}
+.v1-heatmap-right {
+  flex: 1; display: flex; align-items: center;
+}
+
+/* Subheader: "Last 30 days" left | "Less ◻◻◻ More" right — scoped to left half */
 .v1-heatmap-subheader {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px;
+  margin-top: 6px; margin-bottom: 12px;
 }
 .v1-heatmap-period {
   font-size: 10px; font-weight: 300; letter-spacing: 0.04em;
@@ -259,15 +270,7 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
 .v1-heatmap-legend .v1-heat-cell::after { display: none; }
 
-/* Body: grid half (left, centered) | stats half (right) */
-.v1-heatmap-body {
-  display: flex; align-items: flex-start; gap: 0;
-}
-/* Grid occupies left 50% — grid itself is centered inside */
-.v1-heatmap-grid-wrap {
-  flex: 1;
-  display: flex; justify-content: center;
-}
+/* Grid */
 .v1-heatmap-grid {
   display: grid;
   grid-template-rows: repeat(3, 13px);
@@ -301,12 +304,9 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heat-2 { background: rgba(255,255,255,0.68); }
 .v1-heat-3 { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.45); }
 
-/* Stats — starts slightly left of center */
+/* Stats — live in right half */
 .v1-heatmap-stats {
-  flex: 1;
-  display: flex; gap: 28px; align-items: flex-start;
-  padding-top: 0;
-  margin-left: -72px;
+  display: flex; gap: 32px; align-items: flex-start;
 }
 .v1-heatmap-stat { display: flex; flex-direction: column; gap: 3px; }
 .v1-heatmap-stat-val {
@@ -318,13 +318,13 @@ body:has(.v1-root) { background: #a69c97; }
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 
-/* Mobile (≤860px): grid centered, stats horizontal row below */
+/* Mobile (≤860px): single column, grid + stats centered */
 @media (max-width: 860px) {
-  .v1-heatmap-body {
-    flex-direction: column; align-items: center; gap: 20px;
-  }
-  .v1-heatmap-grid-wrap { flex: none; justify-content: center; }
-  .v1-heatmap-stats { flex: none; gap: 24px; margin-left: 0; }
+  .v1-heatmap-two-col { flex-direction: column; align-items: center; gap: 20px; }
+  .v1-heatmap-left { width: 100%; align-items: flex-start; }
+  .v1-heatmap-subheader { width: 100%; }
+  .v1-heatmap-right { width: 100%; justify-content: flex-start; }
+  .v1-heatmap-stats { gap: 24px; }
 }
 @media (max-width: 600px) {
   .v1-heatmap-stat-val { font-size: 20px; }
@@ -717,21 +717,19 @@ export default function DashboardPage() {
 
         {/* Card 1 — Consistency Streak (last 30 days, 3×10) */}
         <div className="v1-card v1-card-heatmap">
-          <div className="v1-card-label">Consistency Streak</div>
+          <div className="v1-heatmap-two-col">
 
-          {/* Subheader: Last 30 days [left] · Less→More [right] */}
-          <div className="v1-heatmap-subheader">
-            <span className="v1-heatmap-period">Last 30 days</span>
-            <div className="v1-heatmap-legend">
-              <span>Less</span>
-              {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
-              <span>More</span>
-            </div>
-          </div>
-
-          {/* Body: grid centered in left half | stats in right half */}
-          <div className="v1-heatmap-body">
-            <div className="v1-heatmap-grid-wrap">
+            {/* LEFT HALF: label + subheader + grid */}
+            <div className="v1-heatmap-left">
+              <div className="v1-card-label">Consistency Streak</div>
+              <div className="v1-heatmap-subheader">
+                <span className="v1-heatmap-period">Last 30 days</span>
+                <div className="v1-heatmap-legend">
+                  <span>Less</span>
+                  {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
+                  <span>More</span>
+                </div>
+              </div>
               <div className="v1-heatmap-grid" role="img" aria-label="30-day activity heatmap">
                 {heatData.current.map((cell, i) => (
                   <div
@@ -743,21 +741,24 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Stats — right 50% on desktop, below on mobile */}
-            <div className="v1-heatmap-stats">
-              <div className="v1-heatmap-stat">
-                <span className="v1-heatmap-stat-val">7</span>
-                <span className="v1-heatmap-stat-key">Day streak</span>
-              </div>
-              <div className="v1-heatmap-stat">
-                <span className="v1-heatmap-stat-val">14</span>
-                <span className="v1-heatmap-stat-key">Best streak</span>
-              </div>
-              <div className="v1-heatmap-stat">
-                <span className="v1-heatmap-stat-val">21</span>
-                <span className="v1-heatmap-stat-key">Logs this month</span>
+            {/* RIGHT HALF: stats */}
+            <div className="v1-heatmap-right">
+              <div className="v1-heatmap-stats">
+                <div className="v1-heatmap-stat">
+                  <span className="v1-heatmap-stat-val">7</span>
+                  <span className="v1-heatmap-stat-key">Day streak</span>
+                </div>
+                <div className="v1-heatmap-stat">
+                  <span className="v1-heatmap-stat-val">14</span>
+                  <span className="v1-heatmap-stat-key">Best streak</span>
+                </div>
+                <div className="v1-heatmap-stat">
+                  <span className="v1-heatmap-stat-val">21</span>
+                  <span className="v1-heatmap-stat-key">Logs this month</span>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
