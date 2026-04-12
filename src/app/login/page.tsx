@@ -7,6 +7,7 @@ import { createSupabaseBrowser } from '@/lib/supabase'
 const SIGNIN_EMAILS = [
   'hritikmehta.77@gmail.com',
   'mehta.hritik2001@gmail.com',
+  'm.hritik999@gmail.com',
 ]
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
