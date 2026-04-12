@@ -201,9 +201,10 @@ export default function LoginPage() {
       if (isOwner) {
         // Owner: send magic link
         const supabase = createSupabaseBrowser()
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
         const { error: sbError } = await supabase.auth.signInWithOtp({
           email: email.trim(),
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: { emailRedirectTo: `${appUrl}/auth/callback` },
         })
         if (sbError) throw sbError
         setDoneType('signin')

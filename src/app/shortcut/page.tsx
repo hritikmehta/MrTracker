@@ -239,7 +239,7 @@ export default function ShortcutSetupPage() {
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   useEffect(() => {
-    setAppUrl(window.location.origin)
+    setAppUrl(process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
     const supabase = createSupabaseBrowser()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id ?? null)
