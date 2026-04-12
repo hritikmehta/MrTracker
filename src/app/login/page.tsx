@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
-// Owner email — silently switches to sign-in flow when detected
-const OWNER_EMAIL = 'hritikmehta.77@gmail.com'
+// Emails that get sign-in flow — everyone else joins the waitlist
+const SIGNIN_EMAILS = [
+  'hritikmehta.77@gmail.com',
+  'mehta.hritik2001@gmail.com',
+]
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 const CSS = `
@@ -186,7 +189,7 @@ export default function LoginPage() {
     if (params.get('error') === 'access_denied') setAccessDenied(true)
   }, [])
 
-  const isOwner = email.trim().toLowerCase() === OWNER_EMAIL.toLowerCase()
+  const isOwner = SIGNIN_EMAILS.includes(email.trim().toLowerCase())
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
