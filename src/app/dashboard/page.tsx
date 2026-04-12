@@ -473,7 +473,7 @@ body:has(.v1-root) { background: #a69c97; }
 /* ── Input Bar ─────────────────────────────────────────── */
 .v1-input-bar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  padding: 20px 24px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 24px calc(10px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to top,
     rgba(14, 13, 15, 0.82) 0%,
     rgba(14, 13, 15, 0.55) 60%,
@@ -483,31 +483,32 @@ body:has(.v1-root) { background: #a69c97; }
   pointer-events: none;
 }
 .v1-input-inner {
-  display: flex; align-items: flex-end; gap: 10px;
+  display: flex; align-items: flex-start; gap: 10px;
   background: rgba(18, 17, 20, 0.82);
   backdrop-filter: blur(32px) saturate(140%);
   -webkit-backdrop-filter: blur(32px) saturate(140%);
   border: 1px solid rgba(255,255,255,0.09);
   border-radius: 24px;
-  padding: 12px 10px 10px 16px;
+  padding: 14px 10px 12px 18px;
   max-width: 680px; margin: 0 auto;
   box-shadow: 0 8px 32px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06);
   pointer-events: all;
+  cursor: text;
 }
 .v1-input-field {
   flex: 1; min-width: 0; border: none; background: transparent; outline: none;
   font-family: 'Outfit', sans-serif;
   font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.88); line-height: 1.5;
-  align-self: flex-end; padding-bottom: 6px;
+  align-self: flex-start; padding-top: 2px;
 }
 .v1-input-field::placeholder { color: rgba(255,255,255,0.32); }
-.v1-input-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.v1-input-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; align-self: flex-end; padding-bottom: 2px; }
 
 @media (min-width: 601px) {
   .v1-input-inner {
-    min-height: 88px;
+    min-height: 80px;
     border-radius: 28px;
-    padding: 14px 10px 10px 18px;
+    padding: 16px 12px 12px 20px;
   }
 }
 .v1-input-mic {
@@ -561,19 +562,6 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-input-feedback-error { color: rgba(220,80,60,0.9); }
 .v1-input-feedback-ok { color: rgba(212,224,190,1); }
 
-/* ── Keyboard hints ─────────────────────────────────────── */
-.v1-input-hints {
-  display: flex; gap: 10px; align-items: center; justify-content: flex-end;
-  padding: 0 4px 6px;
-  max-width: 680px; margin: 0 auto;
-}
-.v1-kbd {
-  display: inline-flex; align-items: center;
-  padding: 2px 7px; border-radius: 5px;
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
-  font-size: 10px; font-weight: 300; color: rgba(255,255,255,0.32);
-  font-family: 'Outfit', sans-serif; white-space: nowrap;
-}
 
 /* ── Keyframes ─────────────────────────────────────────── */
 @keyframes fadeInUp {
@@ -609,9 +597,8 @@ body:has(.v1-root) { background: #a69c97; }
   .v1-bento { padding: 16px 16px 110px; gap: 12px; }
   .v1-card { padding: 20px 18px; border-radius: 22px; }
   .v1-digest-value { font-size: 34px; }
-  .v1-input-bar { padding: 16px 16px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .v1-input-bar { padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); }
   .v1-input-field { font-size: 14px; }
-  .v1-input-hints { display: none; }
 }
 
 @media (min-width: 601px) and (max-width: 860px) {
@@ -1076,13 +1063,6 @@ export default function DashboardPage() {
       <div className="v1-input-bar" role="region" aria-label="Log input">
         {logError && <p className="v1-input-feedback v1-input-feedback-error">{logError}</p>}
         {logSent && <p className="v1-input-feedback v1-input-feedback-ok">Logged ✓</p>}
-        {!logError && !logSent && (
-          <div className="v1-input-hints">
-            <span className="v1-kbd">/ focus</span>
-            {user && <span className="v1-kbd">⌘P analyse</span>}
-            <span className="v1-kbd">↵ send</span>
-          </div>
-        )}
         <div className="v1-input-inner">
           <input
             ref={inputRef}
