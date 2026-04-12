@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
@@ -23,7 +23,6 @@ body:has(.v1-login) { background: #a69c97; }
   padding: 24px;
 }
 
-/* Ambient background */
 .v1-login-ambient {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   z-index: 0; pointer-events: none;
@@ -39,7 +38,6 @@ body:has(.v1-login) { background: #a69c97; }
   100% { transform: scale(1.1); opacity: 1; }
 }
 
-/* Badge */
 .v1-login-badge {
   background: #1c1c1e; color: #fff;
   padding: 8px 16px; border-radius: 20px;
@@ -49,7 +47,6 @@ body:has(.v1-login) { background: #a69c97; }
   position: relative; z-index: 1;
 }
 
-/* Glass card */
 .v1-login-card {
   position: relative; z-index: 1;
   width: 100%; max-width: 420px;
@@ -76,7 +73,6 @@ body:has(.v1-login) { background: #a69c97; }
   margin-bottom: 32px;
 }
 
-/* Input */
 .v1-login-label {
   display: block;
   font-size: 11px; font-weight: 400;
@@ -103,7 +99,6 @@ body:has(.v1-login) { background: #a69c97; }
   background: rgba(255,255,255,0.26);
 }
 
-/* CTA */
 .v1-login-btn {
   width: 100%;
   background: #1c1c1e; color: #fff;
@@ -121,7 +116,6 @@ body:has(.v1-login) { background: #a69c97; }
 }
 .v1-login-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* Spinner */
 .v1-login-spinner {
   width: 14px; height: 14px;
   border: 1.5px solid rgba(255,255,255,0.3);
@@ -131,7 +125,6 @@ body:has(.v1-login) { background: #a69c97; }
 }
 @keyframes v3AuthSpin { to { transform: rotate(360deg); } }
 
-/* Sent state */
 .v1-login-sent {
   text-align: center;
   padding: 8px 0 4px;
@@ -157,7 +150,6 @@ body:has(.v1-login) { background: #a69c97; }
   font-weight: 400; color: #2d2d2d;
 }
 
-/* Error */
 .v1-login-error {
   font-size: 12px; font-weight: 300;
   color: rgba(180,60,40,0.85);
@@ -165,7 +157,17 @@ body:has(.v1-login) { background: #a69c97; }
   padding-left: 4px;
 }
 
-/* Back link */
+.v1-login-notice {
+  font-size: 12px; font-weight: 300;
+  color: rgba(45,45,45,0.60);
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
 .v1-login-back {
   position: relative; z-index: 1;
   margin-top: 24px;
@@ -175,34 +177,77 @@ body:has(.v1-login) { background: #a69c97; }
   transition: color 0.15s;
 }
 .v1-login-back:hover { color: rgba(45,45,45,0.8); }
+
+.v1-login-toggle {
+  position: relative; z-index: 1;
+  margin-top: 16px;
+  font-size: 12px; font-weight: 300;
+  color: rgba(45,45,45,0.48);
+  text-align: center;
+}
+.v1-login-toggle-link {
+  color: rgba(45,45,45,0.70); font-weight: 400;
+  text-decoration: underline; text-underline-offset: 2px;
+  cursor: pointer; background: none; border: none;
+  font-family: 'Outfit', sans-serif; font-size: 12px;
+  padding: 0;
+}
+.v1-login-toggle-link:hover { color: #2d2d2d; }
 `
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function V3AuthPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [mode, setMode] = useState<'signin' | 'waitlist'>('signin')
+  const [waitlistSent, setWaitlistSent] = useState(false)
+  const [accessNotice, setAccessNotice] = useState('')
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('error') === 'access_denied') {
+      setAccessNotice("Your account isn't set up yet. Join the waitlist and we'll reach out.")
+      setMode('waitlist')
+    }
+  }, [])
+
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim()) return
-
     setLoading(true)
     setError('')
-
     try {
       const supabase = createSupabaseBrowser()
       const { error: sbError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
       if (sbError) throw sbError
       setSent(true)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleWaitlist(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim()) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      if (!res.ok) throw new Error('Could not save. Try again.')
+      setWaitlistSent(true)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
       setLoading(false)
     }
@@ -217,28 +262,14 @@ export default function V3AuthPage() {
         <span className="v1-login-badge">MrTracker 1.0</span>
 
         <div className="v1-login-card">
-          {sent ? (
-            <div className="v1-login-sent">
-              <div className="v1-login-sent-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a7a40" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-              </div>
-              <p className="v1-login-sent-heading">Check your inbox</p>
-              <p className="v1-login-sent-body">
-                We sent a magic link to{' '}
-                <span className="v1-login-sent-email">{email}</span>.
-                <br />Click it to sign in — no password needed.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit}>
+          {/* ── Sign-in mode ── */}
+          {mode === 'signin' && !sent && (
+            <form onSubmit={handleSignIn}>
               <h1 className="v1-login-heading">Sign in</h1>
               <p className="v1-login-subtext">
-                Enter your email and we'll send you a magic link.
+                Enter your email and we&apos;ll send you a link.
                 No password required.
               </p>
-
               <label className="v1-login-label" htmlFor="v1-email">Email</label>
               <input
                 id="v1-email"
@@ -251,18 +282,102 @@ export default function V3AuthPage() {
                 autoFocus
                 required
               />
-
               {error && <p className="v1-login-error">{error}</p>}
-
               <button className="v1-login-btn" type="submit" disabled={loading || !email.trim()}>
                 {loading && <span className="v1-login-spinner" />}
-                {loading ? 'Sending…' : 'Send magic link'}
+                {loading ? 'Sending…' : 'Send link'}
               </button>
             </form>
           )}
+
+          {/* ── Sign-in sent ── */}
+          {mode === 'signin' && sent && (
+            <div className="v1-login-sent">
+              <div className="v1-login-sent-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a7a40" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <p className="v1-login-sent-heading">Check your inbox</p>
+              <p className="v1-login-sent-body">
+                We sent a link to{' '}
+                <span className="v1-login-sent-email">{email}</span>.
+                <br />Click it to sign in — no password needed.
+              </p>
+            </div>
+          )}
+
+          {/* ── Waitlist mode ── */}
+          {mode === 'waitlist' && !waitlistSent && (
+            <form onSubmit={handleWaitlist}>
+              <h1 className="v1-login-heading">Join the waitlist</h1>
+              <p className="v1-login-subtext">
+                MrTracker is invite-only right now.
+                Drop your email and we&apos;ll reach out when a spot opens.
+              </p>
+              {accessNotice && (
+                <div className="v1-login-notice">{accessNotice}</div>
+              )}
+              <label className="v1-login-label" htmlFor="v1-waitlist-email">Email</label>
+              <input
+                id="v1-waitlist-email"
+                className="v1-login-input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                autoComplete="email"
+                autoFocus
+                required
+              />
+              {error && <p className="v1-login-error">{error}</p>}
+              <button className="v1-login-btn" type="submit" disabled={loading || !email.trim()}>
+                {loading && <span className="v1-login-spinner" />}
+                {loading ? 'Saving…' : 'Join waitlist'}
+              </button>
+            </form>
+          )}
+
+          {/* ── Waitlist sent ── */}
+          {mode === 'waitlist' && waitlistSent && (
+            <div className="v1-login-sent">
+              <div className="v1-login-sent-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5a7a40" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <p className="v1-login-sent-heading">You&apos;re on the list</p>
+              <p className="v1-login-sent-body">
+                We&apos;ll reach out to{' '}
+                <span className="v1-login-sent-email">{email}</span>{' '}
+                when your spot is ready.
+              </p>
+            </div>
+          )}
         </div>
 
-        <a href="/" className="v1-login-back">← Back to MrTracker</a>
+        {/* ── Toggle between modes ── */}
+        {!sent && !waitlistSent && (
+          <p className="v1-login-toggle">
+            {mode === 'signin' ? (
+              <>
+                No access yet?{' '}
+                <button className="v1-login-toggle-link" onClick={() => { setMode('waitlist'); setError('') }}>
+                  Join the waitlist
+                </button>
+              </>
+            ) : (
+              <>
+                Have access?{' '}
+                <button className="v1-login-toggle-link" onClick={() => { setMode('signin'); setError(''); setAccessNotice('') }}>
+                  Sign in
+                </button>
+              </>
+            )}
+          </p>
+        )}
+
+        <a href="/" className="v1-login-back">← Back</a>
       </div>
     </>
   )

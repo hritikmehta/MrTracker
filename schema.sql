@@ -69,6 +69,25 @@ create index on public.raw_logs   (user_id, processed, logged_at);
 create index on public.workouts   (user_id, workout_date desc);
 create index on public.nutrition  (user_id, meal_date desc);
 
+-- ── Access control ────────────────────────────
+-- Add an email here to grant login access.
+-- Manage via: Supabase Dashboard → Table Editor → allowed_users
+create table if not exists public.allowed_users (
+  id         uuid primary key default gen_random_uuid(),
+  email      text unique not null,
+  note       text,                          -- optional: who this is
+  created_at timestamptz default now()
+);
+-- No RLS — only accessed server-side with service role key
+
+-- ── Waitlist ───────────────────────────────────
+create table if not exists public.waitlist (
+  id         uuid primary key default gen_random_uuid(),
+  email      text unique not null,
+  created_at timestamptz default now()
+);
+-- No RLS — only accessed server-side with service role key
+
 -- ── RLS ───────────────────────────────────────
 alter table public.profiles          enable row level security;
 alter table public.raw_logs          enable row level security;

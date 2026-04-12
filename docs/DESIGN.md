@@ -49,7 +49,7 @@ Muted on dark:      rgba(255, 255, 255, 0.38)
 
 ### Accent
 ```
-Sage glow:  rgba(212, 224, 190, 0.8)  ← orb cloud, waveform bars
+Sage glow:  rgba(212, 224, 190, 0.8)  ← process button, orb cloud, success states
 ```
 
 ### Heatmap Levels (white-opacity scale)
@@ -57,7 +57,7 @@ Sage glow:  rgba(212, 224, 190, 0.8)  ← orb cloud, waveform bars
 level 0:  rgba(255, 255, 255, 0.10)  — no activity
 level 1:  rgba(255, 255, 255, 0.38)  — light
 level 2:  rgba(255, 255, 255, 0.68)  — medium
-level 3:  #ffffff + box-shadow 0 0 7px rgba(255,255,255,0.5)  — full/glow
+level 3:  #ffffff + box-shadow 0 0 6px rgba(255,255,255,0.45)  — full/glow
 ```
 
 ---
@@ -74,10 +74,12 @@ level 3:  #ffffff + box-shadow 0 0 7px rgba(255,255,255,0.5)  — full/glow
 | Hero H1 | `clamp(1.9rem, 4.5vw, 3.4rem)` | 200 | -0.03em | Line-height 1.1, color #111 |
 | Body / subtext | 14px | 300 | — | Line-height 1.55, muted color |
 | Card label | 10px | 400 | 0.10em | ALL CAPS |
-| Numeric value | 42px | 300 | -0.03em | e.g. AI digest score |
+| Numeric value (digest) | 42px | 300 | -0.03em | e.g. AI digest score |
+| Stat value (heatmap) | 26px | 200 | -0.03em | e.g. streak count |
 | Tag / pill | 11–12px | 300 | — | Wrapped in glass pill |
 | CTA text | 12–13px | 300 | 0.02em | Dark pill button |
 | Badge | 12px | 300 | 0.04em | MrTracker 1.0 pill |
+| Keyboard hint | 10px | 300 | 0.01em | `.v1-kbd` / `.sc-kbd` inline hints |
 
 **Rule:** Weight 200 for headlines = premium. Weight 300 across all body/UI = calm, unhurried.
 
@@ -135,7 +137,7 @@ box-shadow: inset 0 1px 1px rgba(255,255,255,0.10), 0 8px 16px rgba(0,0,0,0.15);
 background: rgba(18, 17, 20, 0.82);
 backdrop-filter: blur(32px) saturate(140%);
 border: 1px solid rgba(255,255,255,0.09);
-border-radius: 24–28px (desktop), 999px (mobile);
+border-radius: 24–28px (desktop);
 ```
 
 ```css
@@ -148,26 +150,48 @@ background: linear-gradient(to top,
 
 ---
 
+## Sage Accent Elements
+
+Used for positive/success states and AI-related actions:
+
+```css
+/* Process / AI button */
+background: rgba(212, 224, 190, 0.18);
+border: 1px solid rgba(212, 224, 190, 0.35);
+border-radius: 20px;
+
+/* Keyboard hint pill (in dark input bar) */
+background: rgba(255, 255, 255, 0.08);
+border: 1px solid rgba(255, 255, 255, 0.14);
+color: rgba(255, 255, 255, 0.32);
+border-radius: 5px; padding: 2px 7px;
+
+/* Success feedback text */
+color: rgba(212, 224, 190, 0.95);
+```
+
+---
+
 ## Animation System
 
 | Name | Applied to | Duration | Easing |
 |------|-----------|----------|--------|
-| `breathe` | `.v1-ambient` | 20s infinite alternate | ease-in-out |
+| `breathe` / `scBreathe` | `.v1-ambient` / `.sc-ambient` | 20s infinite alternate | ease-in-out |
 | `rotateCloud` | `.v1-orb-cloud` | 10s infinite | linear |
 | `pulseStreak` | `.v1-orb-streak` | 4s infinite | ease-in-out |
 | `blink` | `.v1-cursor` | 1s infinite | step-end |
-| `fadeInUp` | cards + hero | 0.7s | ease |
+| `fadeInUp` / `scFadeUp` | cards + hero | 0.7s / 0.6s | ease |
+| `v1Spin` / `scSpin` | loading spinners | 0.65s infinite | linear |
 | Typewriter | JS loop | 72ms/char type, 38ms/char delete | — |
 
-Keyframes:
 ```css
 @keyframes breathe {
   0%   { transform: scale(1);   opacity: 0.8; }
   100% { transform: scale(1.1); opacity: 1; }
 }
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-10px); }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 ```
 
@@ -175,40 +199,67 @@ Keyframes:
 
 ## Layout
 
-**Bento grid:** 12-column CSS Grid, `gap: 18px`, `max-width: 1240px`
+**Bento grid:** 12-column CSS Grid, `gap: 18px`, `max-width: 1240px`, `padding: 0 36px 120px`
 
-| Card | Desktop | Mobile order |
-|------|---------|--------------|
-| Consistency Streak | span 8 | 1 |
-| Tracking Options (Shortcut CTA) | span 4 | 2 |
-| AI Digest | span 6 | 3 |
-| Your Logs | span 6 | 4 |
+| Card | Desktop columns | Mobile order |
+|------|----------------|--------------|
+| Consistency Streak (heatmap) | span 12 | 1 |
+| AI Digest | span 6 (cols 1–6) | 2 |
+| Tracking Options (Shortcut CTA) | span 6 (cols 7–12) | 3 |
+| Your Logs | span 12 | 4 |
+
+**Heatmap layout:** Two-column internal split — left: label + 10×3 grid | right: stats (streak, best streak, total)
 
 **Breakpoints:**
-- `≤ 600px` — mobile: single column, typewriter capsule hidden
+- `≤ 600px` — mobile: single column, typewriter capsule hidden, keyboard hints hidden
 - `601–860px` — tablet: single column, reduced padding
-- `≥ 861px` — desktop: full bento grid
+- `≥ 861px` — desktop: full 12-col bento grid
+
+---
+
+## CSS Class Namespaces
+
+| Prefix | Page / Component |
+|--------|-----------------|
+| `.v1-` | Dashboard (`/dashboard`), Login (`/login`) |
+| `.sc-` | Shortcut setup page (`/shortcut`) |
+
+Both pages use inline `<style dangerouslySetInnerHTML={{ __html: CSS }}>` — no external CSS files, no Tailwind.
+
+`body:has(.v1-root)` and `body:has(.v1-login)` and `body:has(.sc-root)` all set background to `#a69c97`.
 
 ---
 
 ## Routes
 
-| Route | Purpose |
-|-------|---------|
-| `/` | Auth check → `/dashboard` or `/login` |
-| `/login` | Magic link auth (V1 glassmorphism design) |
-| `/auth/callback` | Supabase magic link exchange → `/dashboard` |
-| `/dashboard` | Main app — landing + log entry |
-| `/api/log` | POST — save raw log (web session or Bearer token) |
-| `/api/process` | POST — trigger Claude batch processing |
+| Route | Purpose | Auth required |
+|-------|---------|---------------|
+| `/` | Redirects to `/dashboard` | No |
+| `/login` | Magic link sign-in + waitlist toggle | No |
+| `/dashboard` | Main app — showcase if signed out, real data if signed in | No (auth-aware) |
+| `/shortcut` | iOS Shortcut setup — shows API token + instructions | Yes |
+| `/auth/callback` | Magic link exchange + allowlist check | — |
+| `POST /api/log` | Save raw log (web session or Bearer token) | Yes |
+| `POST /api/process` | Trigger Claude batch processing | Session |
+| `POST /api/waitlist` | Save waitlist email | No |
 
 ---
 
-## CSS Class Namespace
+## Component Patterns
 
-All V1 components use the prefix **`v1-`**:
-- Root wrapper: `.v1-root`
-- Login page: `.v1-login`
-- All sub-components: `.v1-[component]-[element]`
+### Auth-aware display (dashboard)
+Signed-out users see showcase data (randomised heatmap seeded via `useRef`, hardcoded digest stats, sample logs). Signed-in users see real data fetched from Supabase. No "demo" language anywhere — the signed-out view is a product preview.
 
-`body:has(.v1-root)` and `body:has(.v1-login)` override the global background to `#a69c97`.
+### Preview banner
+One-line strip at top of dashboard when signed out:
+```
+[Sign in] to see your data
+```
+CSS class: `.v1-demo-banner` / `.v1-demo-link`
+
+### Keyboard shortcut hints
+Shown in the input bar area above the input box (hidden on mobile):
+```
+/ focus    ⌘P analyse    ↵ send
+```
+CSS class: `.v1-input-hints` / `.v1-kbd`

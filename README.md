@@ -1,4 +1,4 @@
-# Tracker — ambient life logging via Siri + web
+# MrTracker — ambient life logging via Siri + web
 
 Log workouts and food by voice. Zero friction. AI parses everything in batch.
 
@@ -6,10 +6,10 @@ Log workouts and food by voice. Zero friction. AI parses everything in batch.
 
 ## Stack
 
-- **Next.js 14** (App Router) — frontend + API routes
-- **Supabase** — auth (magic link) + Postgres database + RLS
-- **Anthropic Claude** — batch NLP parser
-- **Vercel** — deploy in one click, free tier
+- **Next.js** (App Router) — frontend + API routes
+- **Supabase** — auth (magic link) + Postgres + RLS
+- **Anthropic Claude Sonnet** — batch NLP parser
+- **Vercel** — one-click deploy
 
 ---
 
@@ -18,7 +18,7 @@ Log workouts and food by voice. Zero friction. AI parses everything in batch.
 ```bash
 # 1. Clone and install
 git clone <your-repo>
-cd trackerapp
+cd MrTracker
 npm install
 
 # 2. Copy env file and fill in keys
@@ -26,12 +26,11 @@ cp .env.example .env.local
 
 # 3. Set up Supabase
 # - Create project at supabase.com
-# - Run supabase/schema.sql in the SQL editor
+# - Run schema.sql in the SQL editor (root of repo)
 # - Copy URL + anon key + service role key into .env.local
 
 # 4. Get Anthropic key
-# - console.anthropic.com → API keys
-# - Paste into .env.local
+# - console.anthropic.com → API keys → paste into .env.local
 
 # 5. Run locally
 npm run dev
@@ -40,112 +39,123 @@ npm run dev
 
 ---
 
-## Deploy to Vercel
+## Environment variables
 
 ```bash
-npm install -g vercel
-vercel
-# Follow prompts, add env vars when asked
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+ANTHROPIC_API_KEY=
 ```
 
-Or connect your GitHub repo at vercel.com for auto-deploy on every push.
+No other env vars required. Access control is managed via the `allowed_users` Supabase table (see below).
 
 ---
 
-## Build the Apple Shortcut
+## Access control (invite-only)
 
-The Shortcut does exactly 3 things. Build it in the Shortcuts app:
+MrTracker is invite-only. Access is controlled via the `allowed_users` table in Supabase — no redeployment needed.
 
-### Steps (create manually in Shortcuts app):
+**To grant access to a user:**
+1. Supabase Dashboard → Table Editor → `allowed_users`
+2. Insert a row with their email
+3. That's it — they can now sign in
 
-1. **Ask for Input** (or Dictate Text)
-   - Prompt: "What did you do?"
-   - Input type: Text (user can type or dictate)
+Anyone not in the table gets their session revoked at the auth callback and is redirected to the waitlist page. Waitlist signups are stored in the `waitlist` table.
 
-2. **Get Contents of URL** (HTTP POST)
-   - URL: `https://yourapp.vercel.app/api/log`
-   - Method: POST
-   - Headers:
-     - `Content-Type`: `application/json`
-     - `Authorization`: `Bearer YOUR_USER_ID` ← paste your UUID here
-   - Body (JSON):
-     ```json
-     {
-       "text": "[Provided Input]",
-       "timestamp": "[Current Date as ISO 8601]",
-       "source": "shortcut"
-     }
-     ```
-   - For timestamp: add a "Format Date" action before this step
-     - Date: Current Date
-     - Format: ISO 8601
+---
 
-3. **Show Notification** (optional)
-   - Title: "Logged"
-   - Body: [Provided Input]
+## Apple Shortcut setup
 
-### Shortcut name
-Name it **"Tracker"** — this is what Siri listens for.
-"Hey Siri, run Tracker" will trigger it.
+After signing in, go to **Dashboard → "Set Up iOS Shortcut"** — the `/shortcut` page shows:
+- Your personal API token (copy button)
+- The endpoint URL (copy button)
+- A test connection button
+- Step-by-step Shortcut recipe with exact field values pre-filled
 
-### Share with users
-- Open the Shortcut → tap ••• → Share → Copy iCloud Link
-- Paste that link into `app/onboarding/page.tsx` where it says `YOUR_SHORTCUT_ID_HERE`
-- Users tap the link → "Add Shortcut" → done
+Shortcut flow: **Dictate Text → POST to `/api/log` → "MrTracker has taken a note" notification**
 
-### NFC variant (gym bag / kitchen)
-- Buy NFC stickers (e.g. NTAG215, ~₹20 each on Amazon)
-- Shortcuts app → Automation → New → NFC → hold phone to sticker to scan
+The shortcut authenticates via `Authorization: Bearer [YOUR_USER_ID]` header — no login required on the phone.
+
+**NFC variant (tap to log):**
+- Buy NFC stickers (NTAG215)
+- Shortcuts app → Automation → New → NFC → scan sticker
 - Action: Run Shortcut → Tracker
-- Now tapping the sticker runs the Shortcut silently
+- Tap the sticker → shortcut runs silently
 
 ---
 
 ## How batch processing works
 
-Every log entry lands in `raw_logs` as unprocessed text with a timestamp.
+Every log lands in `raw_logs` as unprocessed text.
 
-When a user opens the dashboard, the frontend calls `POST /api/process`.
+From the dashboard, click **Run AI Analysis** (or press `⌘P`) to process. The processor fetches all unprocessed logs for the user, sends them in a single Claude API call (ordered by timestamp for full context), and Claude returns structured JSON for workouts and nutrition.
 
-The processor fetches all unprocessed logs for that user, sends them together to Claude in one API call (ordered by timestamp, so Claude sees the full day's context), and Claude returns structured JSON for workouts and nutrition.
+**Why batch:**
+- One Claude call per session vs one per log — ~80% cheaper
+- Claude sees full-day context ("warmed up 40kg" + "bench 3×8 80kg" understood together)
+- Raw logs are safe if processing fails — reprocess anytime
 
-**Benefits of batching:**
-- One Claude API call per session vs one per message — ~80% cheaper
-- Claude sees full context: "warmed up 40kg" + "bench 3x8 80kg" + "finished 90kg fail" understood as one session
-- Timestamps already set on each log, so processing can happen hours later with no data loss
-- If Claude fails, raw logs are still safe — re-process anytime
+---
+
+## Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus log input |
+| `↵ Enter` | Send log |
+| `⌘P` | Run AI Analysis (signed in only) |
+| `Escape` | Blur input |
 
 ---
 
 ## Folder structure
 
 ```
-app/
-  api/
-    log/route.ts        ← receives all log POSTs (web + Shortcut)
-    process/route.ts    ← triggers batch processing
-  auth/
-    page.tsx            ← magic link login
-    callback/route.ts   ← handles magic link redirect
-  dashboard/
-    page.tsx            ← main UI
-  onboarding/
-    page.tsx            ← shows user token + Shortcut install guide
-lib/
-  supabase.ts           ← browser/server/admin clients
-  processor.ts          ← Claude batch processing logic
-supabase/
-  schema.sql            ← run once to set up DB
+src/
+  app/
+    page.tsx                  ← redirects to /dashboard
+    layout.tsx                ← global layout, Outfit font
+    dashboard/page.tsx        ← main UI (auth-aware, real data when signed in)
+    login/page.tsx            ← magic link sign-in + waitlist toggle
+    shortcut/page.tsx         ← iOS Shortcut setup guide (signed-in only)
+    auth/callback/route.ts    ← magic link exchange + allowlist check
+    api/
+      log/route.ts            ← POST — save raw log (web session or Bearer token)
+      process/route.ts        ← POST — trigger Claude batch processing
+      waitlist/route.ts       ← POST — save waitlist email
+  lib/
+    supabase.ts               ← browser Supabase client
+    supabase-server.ts        ← server + admin Supabase clients
+    processor.ts              ← Claude batch parsing logic
+schema.sql                    ← run once in Supabase SQL editor
+docs/
+  DESIGN.md                   ← locked design system reference
+  Notes - Personal.md         ← dev notes and quick references
 ```
+
+---
+
+## Database tables
+
+| Table | Purpose |
+|-------|---------|
+| `profiles` | Extends auth.users — email, display name |
+| `raw_logs` | Unprocessed log queue — all incoming text |
+| `workouts` | Claude-parsed workout rows |
+| `nutrition` | Claude-parsed nutrition rows |
+| `personal_records` | Best lift per exercise (auto-updated) |
+| `allowed_users` | Invite allowlist — email → access granted |
+| `waitlist` | Waitlist signups |
+
+All user tables use RLS (`user_id = auth.uid()`). `allowed_users` and `waitlist` are service-role only (no RLS).
 
 ---
 
 ## Extending
 
-**Add weekly digest**: create `app/api/report/route.ts`, fetch last 7 days of structured data, send to Claude with a coaching prompt, return the text. Add a "Get report" button to the dashboard.
+**Weekly digest email:** `app/api/report/route.ts` — fetch last 7 days of structured data, send to Claude with coaching prompt, return text.
 
-**Add food photo logging**: accept image upload in `/api/log`, pass as base64 to Claude vision alongside the text.
+**Food photo logging:** Accept image upload in `/api/log`, pass as base64 to Claude vision.
 
-**Multi-user / sharing**: already works — each user has their own UUID, RLS isolates all data.
-
-**Paid tier**: add Stripe, gate the `/api/process` route behind subscription check.
+**NFC variant:** Already works — same `/api/log` endpoint, same Bearer auth. Just configure the shortcut to trigger on NFC tap.

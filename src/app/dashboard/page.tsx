@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
-// ─── Content ────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface RealLog { id: string; text: string; logged_at: string }
+interface HeatDay { level: 0 | 1 | 2 | 3; count: number; dateLabel: string }
+
+// ─── Content ─────────────────────────────────────────────────────────────────
 const TYPEWRITER_PHRASES = [
   'Hey Siri, run Tracker…',
   'Bench 3×8 at 80kg done.',
@@ -12,7 +16,7 @@ const TYPEWRITER_PHRASES = [
   'AI digest ready. ✓',
 ]
 
-const LOGS = [
+const SHOWCASE_LOGS = [
   {
     raw: 'Bench press 3 sets of 8 at 80kg, good pump. Finished with cable flys.',
     tags: ['Bench: 80kg × 3×8', 'Cable Flys', '~45min'],
@@ -30,7 +34,38 @@ const LOGS = [
   },
 ]
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function buildHeatFromMap(dayMap: Map<string, number>): HeatDay[] {
+  return Array.from({ length: 30 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (29 - i))
+    const dayStr = d.toISOString().split('T')[0]
+    const dateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+    const count = dayMap.get(dayStr) ?? 0
+    const level: 0 | 1 | 2 | 3 = count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : 3
+    return { level, count, dateLabel }
+  })
+}
+
+function computeStats(heat: HeatDay[]) {
+  let bestStreak = 0
+  let cur = 0
+  let total = 0
+  for (const day of heat) {
+    total += day.count
+    if (day.count > 0) { cur++; if (cur > bestStreak) bestStreak = cur }
+    else cur = 0
+  }
+  // current streak: from today backwards
+  let streak = 0
+  for (let i = heat.length - 1; i >= 0; i--) {
+    if (heat[i].count > 0) streak++
+    else break
+  }
+  return { streak, best: bestStreak, total }
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const CSS = `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -46,7 +81,7 @@ body:has(.v1-root) { background: #a69c97; }
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Demo banner ────────────────────────────────────────── */
+/* ── Preview banner ─────────────────────────────────────── */
 .v1-demo-banner {
   position: relative; z-index: 20;
   text-align: center; padding: 7px 20px;
@@ -212,7 +247,6 @@ body:has(.v1-root) { background: #a69c97; }
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
   pointer-events: none; border-radius: 1px;
 }
-/* Desktop: Streak full-width → Digest | CTA → Logs full-width */
 .v1-card-heatmap { grid-column: 1 / span 12; animation-delay: 0.08s; }
 .v1-card-digest  { grid-column: 1 / span 6;  animation-delay: 0.14s; }
 .v1-card-cta     { grid-column: 7 / span 6;  animation-delay: 0.20s; }
@@ -228,33 +262,19 @@ body:has(.v1-root) { background: #a69c97; }
   margin-bottom: 16px;
 }
 .v1-card-label-row .v1-card-label { margin-bottom: 0; }
-.v1-see-all {
-  font-size: 11px; font-weight: 300; color: rgba(45,45,45,0.45);
-  text-decoration: none; letter-spacing: 0.02em;
-  padding: 3px 10px; border-radius: 999px;
-  background: rgba(255,255,255,0.20);
-  border: 1px solid rgba(255,255,255,0.30);
-  transition: background 0.15s;
-}
-.v1-see-all:hover { background: rgba(255,255,255,0.32); }
 
 /* ── Heatmap ───────────────────────────────────────────── */
-
-/* Two-column split at center: left = label+subheader+grid | right = stats */
 .v1-heatmap-two-col {
   display: flex; align-items: flex-start;
-  gap: 32px; /* breathing room between the two halves */
+  gap: 32px;
 }
 .v1-heatmap-left {
   flex: 1; display: flex; flex-direction: column;
-  /* grid centres itself via align-self: center below */
 }
 .v1-heatmap-right {
   flex: 1; display: flex; flex-direction: column;
   align-items: flex-start; gap: 12px;
 }
-
-/* Subheader: "Last 30 days" left | "Less ◻◻◻ More" right — scoped to left half */
 .v1-heatmap-subheader {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: 6px; margin-bottom: 12px;
@@ -272,14 +292,12 @@ body:has(.v1-root) { background: #a69c97; }
 }
 .v1-heatmap-legend .v1-heat-cell:hover { transform: none; }
 .v1-heatmap-legend .v1-heat-cell::after { display: none; }
-
-/* Grid: 10 cols × 3 rows, left→right then next row */
 .v1-heatmap-grid {
   display: grid;
   grid-template-columns: repeat(10, 13px);
   grid-auto-flow: row;
   gap: 3px; width: max-content;
-  align-self: center; /* centres grid horizontally inside left half */
+  align-self: center;
   margin-top: 2px;
 }
 .v1-heat-cell {
@@ -307,8 +325,6 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-heat-1 { background: rgba(255,255,255,0.38); }
 .v1-heat-2 { background: rgba(255,255,255,0.68); }
 .v1-heat-3 { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.45); }
-
-/* Stats — live in right half */
 .v1-heatmap-stats {
   display: flex; gap: 32px; align-items: flex-start;
 }
@@ -322,15 +338,14 @@ body:has(.v1-root) { background: #a69c97; }
   text-transform: uppercase; letter-spacing: 0.06em;
 }
 
-/* Mobile (≤860px): single column */
 @media (max-width: 860px) {
   .v1-heatmap-two-col {
     flex-direction: column; align-items: flex-start; gap: 20px;
   }
   .v1-heatmap-left { width: 100%; }
-  .v1-heatmap-grid { align-self: center; } /* keep grid centred on mobile too */
+  .v1-heatmap-grid { align-self: center; }
   .v1-heatmap-right { width: 100%; flex-direction: row; align-items: flex-end; gap: 24px; }
-  .v1-heatmap-right .v1-card-label { display: none; } /* hide "Stats" label on mobile — fits inline */
+  .v1-heatmap-right .v1-card-label { display: none; }
   .v1-heatmap-stats { gap: 24px; }
 }
 @media (max-width: 600px) {
@@ -402,6 +417,11 @@ body:has(.v1-root) { background: #a69c97; }
   font-size: 11px; font-weight: 300; color: rgba(45,45,45,0.35);
   background: transparent; border: none; padding-left: 2px;
 }
+.v1-logs-empty {
+  text-align: center; padding: 28px 16px;
+  font-size: 13px; font-weight: 300;
+  color: rgba(45,45,45,0.38); line-height: 1.6;
+}
 
 /* ── Digest Card ───────────────────────────────────────── */
 .v1-digest-body { display: flex; flex-direction: column; gap: 16px; }
@@ -427,6 +447,28 @@ body:has(.v1-root) { background: #a69c97; }
 }
 .v1-digest-row-val { color: #2d2d2d; font-weight: 400; }
 .v1-sparkline { flex-shrink: 0; }
+
+/* ── Process Button ─────────────────────────────────────── */
+.v1-digest-action {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; padding-top: 2px;
+}
+.v1-process-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px;
+  background: rgba(212,224,190,0.18); color: rgba(45,45,45,0.72);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px; font-weight: 300; letter-spacing: 0.02em;
+  border-radius: 20px; border: 1px solid rgba(212,224,190,0.35); cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+  transition: transform 0.15s, background 0.15s, opacity 0.15s;
+}
+.v1-process-btn:hover:not(:disabled) { transform: translateY(-1px); background: rgba(212,224,190,0.30); }
+.v1-process-btn:disabled { opacity: 0.50; cursor: not-allowed; }
+.v1-process-feedback {
+  font-size: 11px; font-weight: 300; color: rgba(212,224,190,0.95);
+  letter-spacing: 0.02em;
+}
 
 /* ── Input Bar ─────────────────────────────────────────── */
 .v1-input-bar {
@@ -461,7 +503,6 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-input-field::placeholder { color: rgba(255,255,255,0.32); }
 .v1-input-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
-/* Desktop: taller input box */
 @media (min-width: 601px) {
   .v1-input-inner {
     min-height: 88px;
@@ -503,15 +544,36 @@ body:has(.v1-root) { background: #a69c97; }
   border-radius: 50%;
   animation: v1Spin 0.65s linear infinite;
 }
+.v1-process-spinner {
+  width: 11px; height: 11px;
+  border: 1.5px solid rgba(45,45,45,0.2);
+  border-top-color: rgba(45,45,45,0.65);
+  border-radius: 50%;
+  animation: v1Spin 0.65s linear infinite;
+}
 @keyframes v1Spin { to { transform: rotate(360deg); } }
 
 .v1-input-feedback {
   font-size: 11px; font-weight: 300; letter-spacing: 0.02em;
   padding: 0 4px 8px;
-  text-align: center;
+  max-width: 680px; margin: 0 auto;
 }
 .v1-input-feedback-error { color: rgba(220,80,60,0.9); }
 .v1-input-feedback-ok { color: rgba(212,224,190,1); }
+
+/* ── Keyboard hints ─────────────────────────────────────── */
+.v1-input-hints {
+  display: flex; gap: 10px; align-items: center; justify-content: flex-end;
+  padding: 0 4px 6px;
+  max-width: 680px; margin: 0 auto;
+}
+.v1-kbd {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 5px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+  font-size: 10px; font-weight: 300; color: rgba(255,255,255,0.32);
+  font-family: 'Outfit', sans-serif; white-space: nowrap;
+}
 
 /* ── Keyframes ─────────────────────────────────────────── */
 @keyframes fadeInUp {
@@ -549,6 +611,7 @@ body:has(.v1-root) { background: #a69c97; }
   .v1-digest-value { font-size: 34px; }
   .v1-input-bar { padding: 16px 16px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .v1-input-field { font-size: 14px; }
+  .v1-input-hints { display: none; }
 }
 
 @media (min-width: 601px) and (max-width: 860px) {
@@ -562,36 +625,165 @@ body:has(.v1-root) { background: #a69c97; }
 }
 `
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  // Typewriter
   const [typeText, setTypeText] = useState('')
   const [charIdx, setCharIdx] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [phraseIdx, setPhraseIdx] = useState(0)
+
+  // Auth + input
   const [inputText, setInputText] = useState('')
   const [sending, setSending] = useState(false)
   const [logError, setLogError] = useState('')
   const [logSent, setLogSent] = useState(false)
-  const [user, setUser] = useState<{ email?: string } | null>(null)
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
   const [authReady, setAuthReady] = useState(false)
 
-  // ── Auth detection (persists via Supabase cookie session)
+  // Real user data
+  const [realLogs, setRealLogs] = useState<RealLog[]>([])
+  const [realHeat, setRealHeat] = useState<HeatDay[] | null>(null)
+  const [realStats, setRealStats] = useState<{ streak: number; best: number; total: number } | null>(null)
+  const [processing, setProcessing] = useState(false)
+  const [processMsg, setProcessMsg] = useState('')
+
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Showcase heatmap for logged-out view (randomised once on mount)
+  const showcaseHeat = useRef<HeatDay[]>(
+    Array.from({ length: 30 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - (29 - i))
+      const dateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+      const bias = i >= 26 ? 0.82 : 0.52
+      const active = Math.random() < bias
+      const level = active
+        ? (Math.random() < 0.35 ? 1 : Math.random() < 0.55 ? 2 : 3) as 1 | 2 | 3
+        : 0 as const
+      const count = level === 0 ? 0
+        : level === 1 ? Math.floor(Math.random() * 2) + 1
+        : level === 2 ? Math.floor(Math.random() * 3) + 2
+        : Math.floor(Math.random() * 4) + 4
+      return { level, count, dateLabel }
+    })
+  )
+
+  // ── Auth detection
   useEffect(() => {
     const supabase = createSupabaseBrowser()
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
+      if (user) {
+        setUser({ id: user.id, email: user.email ?? undefined })
+        fetchUserData(user.id)
+      }
       setAuthReady(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email ?? undefined })
+        fetchUserData(session.user.id)
+      } else {
+        setUser(null)
+        setRealLogs([])
+        setRealHeat(null)
+        setRealStats(null)
+      }
     })
     return () => subscription.unsubscribe()
   }, [])
 
+  // ── Keyboard shortcuts
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement).tagName
+      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+      if (e.key === 'Escape') inputRef.current?.blur()
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault()
+        if (user) handleProcess()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Typewriter
+  useEffect(() => {
+    const phrase = TYPEWRITER_PHRASES[phraseIdx]
+    let t: ReturnType<typeof setTimeout>
+    if (!isDeleting && charIdx < phrase.length) {
+      t = setTimeout(() => { setTypeText(phrase.slice(0, charIdx + 1)); setCharIdx(c => c + 1) }, 72)
+    } else if (!isDeleting && charIdx === phrase.length) {
+      t = setTimeout(() => setIsDeleting(true), 1800)
+    } else if (isDeleting && charIdx > 0) {
+      t = setTimeout(() => { setTypeText(phrase.slice(0, charIdx - 1)); setCharIdx(c => c - 1) }, 38)
+    } else {
+      setIsDeleting(false)
+      setPhraseIdx(i => (i + 1) % TYPEWRITER_PHRASES.length)
+    }
+    return () => clearTimeout(t)
+  }, [charIdx, isDeleting, phraseIdx])
+
+  // ── Data fetching
+  async function fetchUserData(userId: string) {
+    const supabase = createSupabaseBrowser()
+    const since = new Date()
+    since.setDate(since.getDate() - 29)
+    since.setHours(0, 0, 0, 0)
+
+    const [logsRes, heatRes] = await Promise.all([
+      supabase.from('raw_logs')
+        .select('id, text, logged_at')
+        .eq('user_id', userId)
+        .order('logged_at', { ascending: false })
+        .limit(5),
+      supabase.from('raw_logs')
+        .select('logged_at')
+        .eq('user_id', userId)
+        .gte('logged_at', since.toISOString()),
+    ])
+
+    if (logsRes.data) setRealLogs(logsRes.data)
+
+    if (heatRes.data) {
+      const dayMap = new Map<string, number>()
+      heatRes.data.forEach(l => {
+        const day = l.logged_at.split('T')[0]
+        dayMap.set(day, (dayMap.get(day) ?? 0) + 1)
+      })
+      const heat = buildHeatFromMap(dayMap)
+      setRealHeat(heat)
+      setRealStats(computeStats(heat))
+    }
+  }
+
   async function handleSignOut() {
     const supabase = createSupabaseBrowser()
     await supabase.auth.signOut()
-    setUser(null)
+  }
+
+  async function handleProcess() {
+    if (processing) return
+    setProcessing(true)
+    setProcessMsg('')
+    try {
+      const res = await fetch('/api/process', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setProcessMsg(data.processed > 0
+        ? `${data.processed} log${data.processed !== 1 ? 's' : ''} analysed ✓`
+        : 'All caught up')
+      if (user?.id) await fetchUserData(user.id)
+    } catch (err: unknown) {
+      setProcessMsg(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setProcessing(false)
+      setTimeout(() => setProcessMsg(''), 4000)
+    }
   }
 
   async function handleSend() {
@@ -610,6 +802,7 @@ export default function DashboardPage() {
       }
       setInputText('')
       setLogSent(true)
+      if (user?.id) fetchUserData(user.id)
       setTimeout(() => setLogSent(false), 2000)
     } catch (err: unknown) {
       setLogError(err instanceof Error ? err.message : 'Something went wrong')
@@ -619,38 +812,21 @@ export default function DashboardPage() {
     }
   }
 
-  // Last 30 days: 3 rows × 10 cols, column-flow (oldest top-left → newest bottom-right)
-  const heatData = useRef(
-    Array.from({ length: 30 }, (_, i) => {
-      // i=0 → 29 days ago, i=29 → today
-      const d = new Date()
-      d.setDate(d.getDate() - (29 - i))
-      const dateLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
-      const bias = i >= 26 ? 0.82 : 0.52
-      const active = Math.random() < bias
-      const level = active
-        ? (Math.random() < 0.35 ? 1 : Math.random() < 0.55 ? 2 : 3) as 1 | 2 | 3
-        : 0 as const
-      const count = level === 0 ? 0 : level === 1 ? Math.floor(Math.random() * 2) + 1 : level === 2 ? Math.floor(Math.random() * 3) + 2 : Math.floor(Math.random() * 4) + 4
-      return { level, count, dateLabel }
-    })
-  )
-
-  useEffect(() => {
-    const phrase = TYPEWRITER_PHRASES[phraseIdx]
-    let t: ReturnType<typeof setTimeout>
-    if (!isDeleting && charIdx < phrase.length) {
-      t = setTimeout(() => { setTypeText(phrase.slice(0, charIdx + 1)); setCharIdx(c => c + 1) }, 72)
-    } else if (!isDeleting && charIdx === phrase.length) {
-      t = setTimeout(() => setIsDeleting(true), 1800)
-    } else if (isDeleting && charIdx > 0) {
-      t = setTimeout(() => { setTypeText(phrase.slice(0, charIdx - 1)); setCharIdx(c => c - 1) }, 38)
-    } else {
-      setIsDeleting(false)
-      setPhraseIdx(i => (i + 1) % TYPEWRITER_PHRASES.length)
+  function formatLogTime(logged_at: string) {
+    const d = new Date(logged_at)
+    const now = new Date()
+    const diff = now.getTime() - d.getTime()
+    if (diff < 60000) return 'Just now'
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+    if (d.toDateString() === now.toDateString()) {
+      return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     }
-    return () => clearTimeout(t)
-  }, [charIdx, isDeleting, phraseIdx])
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  }
+
+  // Display values: real data for logged-in, showcase for logged-out
+  const displayHeat = realHeat ?? showcaseHeat.current
+  const displayStats = realStats ?? { streak: 7, best: 14, total: 21 }
 
   return (
     <div className="v1-root">
@@ -658,11 +834,10 @@ export default function DashboardPage() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="v1-ambient" aria-hidden="true" />
 
-      {/* ── Demo banner (shown only when logged out) ── */}
+      {/* ── Preview banner (signed-out only) ── */}
       {authReady && !user && (
         <div className="v1-demo-banner">
-          Viewing demo data —{' '}
-          <a href="/login" className="v1-demo-link">Sign in</a> to see your real logs
+          <a href="/login" className="v1-demo-link">Sign in</a> to see your data
         </div>
       )}
 
@@ -694,9 +869,8 @@ export default function DashboardPage() {
         <h1>Tracking made easy.</h1>
         <p className="v1-hero-sub">
           Just tell MrTracker. Rest is taken care of.<br />
-          Connect with Apple Shortcuts — Zero screen taps. No Distraction.
+          Connect with Apple Shortcuts — Zero screen taps. No distraction.
         </p>
-        {/* Typewriter capsule — hidden on mobile via CSS */}
         <div className="v1-hero-capsule-wrap">
           <div className="v1-capsule">
             <div className="v1-orb">
@@ -722,23 +896,21 @@ export default function DashboardPage() {
       {/* ── Bento Grid ── */}
       <main className="v1-bento">
 
-        {/* Card 1 — Consistency Streak (last 30 days, 3×10) */}
+        {/* Card 1 — Consistency Streak */}
         <div className="v1-card v1-card-heatmap">
           <div className="v1-heatmap-two-col">
-
-            {/* LEFT HALF: label + subheader + grid */}
             <div className="v1-heatmap-left">
               <div className="v1-card-label">Consistency Streak</div>
               <div className="v1-heatmap-subheader">
                 <span className="v1-heatmap-period">Last 30 days</span>
                 <div className="v1-heatmap-legend">
                   <span>Less</span>
-                  {[0,1,2,3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
+                  {[0, 1, 2, 3].map(l => <div key={l} className={`v1-heat-cell v1-heat-${l}`} />)}
                   <span>More</span>
                 </div>
               </div>
               <div className="v1-heatmap-grid" role="img" aria-label="30-day activity heatmap">
-                {heatData.current.map((cell, i) => (
+                {displayHeat.map((cell, i) => (
                   <div
                     key={i}
                     className={`v1-heat-cell v1-heat-${cell.level}`}
@@ -748,29 +920,27 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* RIGHT HALF: stats */}
             <div className="v1-heatmap-right">
               <div className="v1-card-label">Stats</div>
               <div className="v1-heatmap-stats">
                 <div className="v1-heatmap-stat">
-                  <span className="v1-heatmap-stat-val">7</span>
+                  <span className="v1-heatmap-stat-val">{displayStats.streak}</span>
                   <span className="v1-heatmap-stat-key">Day streak</span>
                 </div>
                 <div className="v1-heatmap-stat">
-                  <span className="v1-heatmap-stat-val">14</span>
+                  <span className="v1-heatmap-stat-val">{displayStats.best}</span>
                   <span className="v1-heatmap-stat-key">Best streak</span>
                 </div>
                 <div className="v1-heatmap-stat">
-                  <span className="v1-heatmap-stat-val">21</span>
+                  <span className="v1-heatmap-stat-val">{displayStats.total}</span>
                   <span className="v1-heatmap-stat-key">Logs this month</span>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* Card 2 — AI Digest (desktop: col 1-6 row 2 | mobile: order 2) */}
+        {/* Card 2 — AI Digest */}
         <div className="v1-card v1-card-digest">
           <div className="v1-card-label">AI Digest</div>
           <div className="v1-digest-body">
@@ -811,10 +981,19 @@ export default function DashboardPage() {
                   fill="url(#sg2)" />
               </svg>
             </div>
+            {user && (
+              <div className="v1-digest-action">
+                <button className="v1-process-btn" onClick={handleProcess} disabled={processing}>
+                  {processing && <span className="v1-process-spinner" />}
+                  {processing ? 'Analysing…' : 'Run AI Analysis'}
+                </button>
+                {processMsg && <span className="v1-process-feedback">{processMsg}</span>}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Card 3 — Tracking Options (desktop: col 7-12 row 2 | mobile: order 3) */}
+        {/* Card 3 — Tracking Options */}
         <div className="v1-card v1-card-cta">
           <div className="v1-cta-tracking-label">Tracking options</div>
           <h3 className="v1-cta-title">Log without opening the app</h3>
@@ -833,52 +1012,80 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="v1-cta-body">
-            Or tap an NFC sticker on your kitchen counter, gym bag, or desk — no need to open any app.
+            Or tap an NFC sticker on your gym bag or kitchen counter — no need to open any app.
           </p>
-          <a href="#" className="v1-cta-btn">
+          <a href={user ? '/shortcut' : '#'} className="v1-cta-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" x2="12" y1="15" y2="3" />
             </svg>
-            Download Shortcuts
+            {user ? 'Set Up iOS Shortcut' : 'Get iOS Shortcut'}
           </a>
         </div>
 
-        {/* Card 4 — Your Logs (desktop: col 1-12 row 3 | mobile: order 4) */}
+        {/* Card 4 — Your Logs */}
         <div className="v1-card v1-card-logs">
           <div className="v1-card-label-row">
             <span className="v1-card-label">Your Logs</span>
-            <a href="#" className="v1-see-all">See all</a>
           </div>
           <div className="v1-logs-list">
-            {LOGS.map((log, i) => (
-              <div key={i} className="v1-log-item">
-                <div className="v1-log-raw">
-                  <span className="v1-log-quote">&ldquo;</span>
-                  {log.raw}
-                  <span className="v1-log-quote">&rdquo;</span>
+            {user ? (
+              realLogs.length > 0 ? (
+                realLogs.map((log) => (
+                  <div key={log.id} className="v1-log-item">
+                    <div className="v1-log-raw">
+                      <span className="v1-log-quote">&ldquo;</span>
+                      {log.text}
+                      <span className="v1-log-quote">&rdquo;</span>
+                    </div>
+                    <div className="v1-log-footer">
+                      <span className="v1-tag v1-tag-time">{formatLogTime(log.logged_at)}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="v1-logs-empty">
+                  No logs yet.<br />Type below or use the iOS Shortcut to start tracking.
                 </div>
-                <div className="v1-log-tags">
-                  {log.tags.map((tag, j) => <span key={j} className="v1-tag">{tag}</span>)}
+              )
+            ) : (
+              SHOWCASE_LOGS.map((log, i) => (
+                <div key={i} className="v1-log-item">
+                  <div className="v1-log-raw">
+                    <span className="v1-log-quote">&ldquo;</span>
+                    {log.raw}
+                    <span className="v1-log-quote">&rdquo;</span>
+                  </div>
+                  <div className="v1-log-tags">
+                    {log.tags.map((tag, j) => <span key={j} className="v1-tag">{tag}</span>)}
+                  </div>
+                  <div className="v1-log-footer">
+                    <span className="v1-tag v1-tag-time">{log.time}</span>
+                  </div>
                 </div>
-                <div className="v1-log-footer">
-                  <span className="v1-tag v1-tag-time">{log.time}</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
       </main>
 
-      {/* ── Input Bar (desktop + mobile) ── */}
+      {/* ── Input Bar ── */}
       <div className="v1-input-bar" role="region" aria-label="Log input">
         {logError && <p className="v1-input-feedback v1-input-feedback-error">{logError}</p>}
         {logSent && <p className="v1-input-feedback v1-input-feedback-ok">Logged ✓</p>}
+        {!logError && !logSent && (
+          <div className="v1-input-hints">
+            <span className="v1-kbd">/ focus</span>
+            {user && <span className="v1-kbd">⌘P analyse</span>}
+            <span className="v1-kbd">↵ send</span>
+          </div>
+        )}
         <div className="v1-input-inner">
           <input
+            ref={inputRef}
             type="text"
             className="v1-input-field"
             placeholder="Log anything — workout, food, weight…"
@@ -889,7 +1096,6 @@ export default function DashboardPage() {
             disabled={sending}
           />
           <div className="v1-input-actions">
-            {/* Mic */}
             <button className="v1-input-mic" aria-label="Voice input">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -898,7 +1104,6 @@ export default function DashboardPage() {
                 <line x1="12" y1="19" x2="12" y2="22" />
               </svg>
             </button>
-            {/* Camera */}
             <button className="v1-input-camera" aria-label="Camera">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -906,7 +1111,6 @@ export default function DashboardPage() {
                 <circle cx="12" cy="13" r="4" />
               </svg>
             </button>
-            {/* Send */}
             <button className="v1-input-send" aria-label="Send"
               onClick={handleSend}
               disabled={sending || !inputText.trim()}>
