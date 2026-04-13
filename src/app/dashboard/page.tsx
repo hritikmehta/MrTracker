@@ -700,6 +700,7 @@ export default function DashboardPage() {
   const [realHeat, setRealHeat] = useState<HeatDay[] | null>(null)
   const [realStats, setRealStats] = useState<{ streak: number; best: number; total: number } | null>(null)
   const [digestData, setDigestData] = useState<DigestData | null>(null)
+  const [digestReady, setDigestReady] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [processMsg, setProcessMsg] = useState('')
   const [showCronDialog, setShowCronDialog] = useState(false)
@@ -856,6 +857,7 @@ export default function DashboardPage() {
         recentMeals: nutrition.filter(n => n.meal_date === todayStr).slice(0, 5),
       })
     }
+    setDigestReady(true)
   }
 
   async function handleSignOut() {
@@ -1045,7 +1047,7 @@ export default function DashboardPage() {
         <div className="v1-card v1-card-digest">
           <div className="v1-card-label">AI Digest</div>
           <div className="v1-digest-body">
-            {digestData ? (
+            {digestReady && digestData ? (
               <>
                 <div className="v1-digest-trends">
                   <div className="v1-digest-row">
@@ -1086,17 +1088,17 @@ export default function DashboardPage() {
                   </div>
                 )}
               </>
-            ) : (
+            ) : digestReady ? (
               <div className="v1-digest-empty">
-                <p className="v1-digest-empty-title">MrTracker goes through your daily logs each night and creates a holistic summary — calories, exercise, weight, and more. Over time, it learns your patterns and builds weekly and monthly digests.</p>
+                <p className="v1-digest-empty-title">Nightly AI summary — calories, workouts, weight. Weekly & monthly patterns over time.</p>
                 <ul className="v1-digest-empty-list">
-                  <li>Share your meals — &ldquo;Had chicken and rice, roughly 600 calories&rdquo;</li>
-                  <li>Log your workout — &ldquo;Bench press 4 sets of 8 at 80kg&rdquo;</li>
-                  <li>Track your weight — &ldquo;Weight 74.2 this morning&rdquo;</li>
-                  <li>MrTracker does the rest — no manual entry, no spreadsheets</li>
+                  <li>Diet — &ldquo;Chicken rice, ~600 cal&rdquo;</li>
+                  <li>Workout — &ldquo;Bench 4×8 at 80kg&rdquo;</li>
+                  <li>Weight — &ldquo;74.2 this morning&rdquo;</li>
+                  <li>MrTracker analyses it all</li>
                 </ul>
               </div>
-            )}
+            ) : null}
             {user && (
               <div className="v1-digest-action">
                 <button className="v1-process-btn" onClick={handleProcess} disabled={processing}>
