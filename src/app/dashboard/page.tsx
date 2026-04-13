@@ -478,6 +478,47 @@ body:has(.v1-root) { background: #a69c97; }
   font-size: 11px; font-weight: 300; color: rgba(212,224,190,0.95);
   letter-spacing: 0.02em;
 }
+/* ── Dialog ─────────────────────────────────────────────── */
+.v1-dialog-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: v1FadeIn 0.15s ease both;
+}
+@keyframes v1FadeIn { from { opacity: 0; } to { opacity: 1; } }
+.v1-dialog {
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(40px) saturate(140%);
+  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.30);
+  border-radius: 24px;
+  padding: 32px 28px;
+  max-width: 320px; width: 100%;
+  text-align: center;
+  box-shadow: 0 32px 64px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.40);
+  animation: v1SlideUp 0.2s ease both;
+}
+@keyframes v1SlideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.v1-dialog-title {
+  font-size: 15px; font-weight: 300; color: #1c1c1e;
+  line-height: 1.55; margin-bottom: 10px;
+}
+.v1-dialog-sub {
+  font-size: 13px; font-weight: 300; color: rgba(45,45,45,0.50);
+  margin-bottom: 24px;
+}
+.v1-dialog-btn {
+  padding: 10px 28px;
+  background: #1c1c1e; color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px; font-weight: 300; letter-spacing: 0.02em;
+  border: none; border-radius: 999px; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.v1-dialog-btn:hover { opacity: 0.80; }
+
 .v1-digest-empty {
   padding: 4px 0 8px;
 }
@@ -661,6 +702,7 @@ export default function DashboardPage() {
   const [digestData, setDigestData] = useState<DigestData | null>(null)
   const [processing, setProcessing] = useState(false)
   const [processMsg, setProcessMsg] = useState('')
+  const [showCronDialog, setShowCronDialog] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -821,7 +863,11 @@ export default function DashboardPage() {
     await supabase.auth.signOut()
   }
 
+  const ownerEmails = (process.env.NEXT_PUBLIC_OWNER_EMAILS ?? '').split(',').map(e => e.trim()).filter(Boolean)
+  const isOwner = user?.email ? ownerEmails.includes(user.email) : false
+
   async function handleProcess() {
+    if (!isOwner) { setShowCronDialog(true); return }
     if (processing) return
     setProcessing(true)
     setProcessMsg('')
@@ -879,9 +925,9 @@ export default function DashboardPage() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   }
 
-  // Display values: real data for logged-in, showcase for logged-out
-  const displayHeat = (user && realHeat) ? realHeat : (!user ? showcaseHeat.current : null)
-  const displayStats = (user && realStats) ? realStats : (!user ? { streak: 7, best: 14, total: 21 } : null)
+  // Display values: real data for logged-in, showcase only for confirmed logged-out
+  const displayHeat = user ? realHeat : (authReady ? showcaseHeat.current : null)
+  const displayStats = user ? realStats : (authReady ? { streak: 7, best: 14, total: 21 } : null)
 
   return (
     <div className="v1-root">
@@ -1042,12 +1088,12 @@ export default function DashboardPage() {
               </>
             ) : (
               <div className="v1-digest-empty">
-                <p className="v1-digest-empty-title">Your summary will appear here</p>
+                <p className="v1-digest-empty-title">MrTracker goes through your daily logs each night and creates a holistic summary — calories, exercise, weight, and more. Over time, it learns your patterns and builds weekly and monthly digests.</p>
                 <ul className="v1-digest-empty-list">
-                  <li>Tell MrTracker what you ate — &ldquo;Had chicken and rice, 600 calories&rdquo;</li>
+                  <li>Share your meals — &ldquo;Had chicken and rice, roughly 600 calories&rdquo;</li>
                   <li>Log your workout — &ldquo;Bench press 4 sets of 8 at 80kg&rdquo;</li>
                   <li>Track your weight — &ldquo;Weight 74.2 this morning&rdquo;</li>
-                  <li>Hit <strong>Run AI Analysis</strong> to get a combined summary</li>
+                  <li>MrTracker does the rest — no manual entry, no spreadsheets</li>
                 </ul>
               </div>
             )}
@@ -1055,7 +1101,7 @@ export default function DashboardPage() {
               <div className="v1-digest-action">
                 <button className="v1-process-btn" onClick={handleProcess} disabled={processing}>
                   {processing && <span className="v1-process-spinner" />}
-                  {processing ? 'Analysing…' : 'Run AI Analysis'}
+                  {processing ? 'Summarising…' : 'Summarise'}
                 </button>
                 {processMsg && <span className="v1-process-feedback">{processMsg}</span>}
               </div>
@@ -1141,6 +1187,17 @@ export default function DashboardPage() {
         </div>
 
       </main>
+
+      {/* ── Cron Dialog ── */}
+      {showCronDialog && (
+        <div className="v1-dialog-backdrop" onClick={() => setShowCronDialog(false)}>
+          <div className="v1-dialog" onClick={e => e.stopPropagation()}>
+            <p className="v1-dialog-title">Summary will be generated at end of the day.</p>
+            <p className="v1-dialog-sub">Keep Tracking!</p>
+            <button className="v1-dialog-btn" onClick={() => setShowCronDialog(false)}>Got it</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Input Bar ── */}
       <div className="v1-input-bar" role="region" aria-label="Log input">
