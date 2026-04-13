@@ -1047,58 +1047,110 @@ export default function DashboardPage() {
         <div className="v1-card v1-card-digest">
           <div className="v1-card-label">AI Digest</div>
           <div className="v1-digest-body">
-            {digestReady && digestData ? (
-              <>
-                <div className="v1-digest-trends">
-                  <div className="v1-digest-row">
-                    <span>Workout Days This Week</span>
-                    <span className="v1-digest-row-val">{digestData.workoutDaysThisWeek} day{digestData.workoutDaysThisWeek !== 1 ? 's' : ''}</span>
+            {(() => {
+              // Logged out — show showcase demo
+              if (!user) return (
+                <>
+                  <div className="v1-digest-metric">
+                    <span className="v1-digest-value">84%</span>
+                    <span className="v1-digest-label">Weekly Score</span>
                   </div>
-                  <div className="v1-digest-row">
-                    <span>Avg Daily Protein</span>
-                    <span className="v1-digest-row-val">{digestData.avgProteinThisWeek > 0 ? `${digestData.avgProteinThisWeek} g` : '—'}</span>
+                  <p className="v1-digest-summary">
+                    You hit <strong>5 of 6 workout days</strong> this week. Protein intake averaged{' '}
+                    <strong>148g/day</strong> — on target.
+                  </p>
+                  <div className="v1-digest-trends">
+                    <div className="v1-digest-row">
+                      <span>Workout Consistency</span>
+                      <span className="v1-digest-row-val">5 / 6 days</span>
+                    </div>
+                    <div className="v1-digest-row">
+                      <span>Avg Daily Protein</span>
+                      <span className="v1-digest-row-val">148 g ↑</span>
+                    </div>
+                    <div className="v1-digest-row">
+                      <span>Logs This Week</span>
+                      <span className="v1-digest-row-val">24 entries</span>
+                    </div>
                   </div>
-                  <div className="v1-digest-row">
-                    <span>Calories Today</span>
-                    <span className="v1-digest-row-val">{digestData.totalCaloriesToday > 0 ? `${digestData.totalCaloriesToday} kcal` : '—'}</span>
+                  <div className="v1-sparkline">
+                    <svg width="100%" height="48" viewBox="0 0 300 48" preserveAspectRatio="none" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
+                          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                        </linearGradient>
+                      </defs>
+                      <path d="M0 38 C 40 38, 50 14, 80 20 C 110 26, 130 8, 160 14 C 190 20, 210 32, 240 24 C 270 16, 285 7, 300 5"
+                        fill="none" stroke="rgba(255,255,255,0.50)" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M0 38 C 40 38, 50 14, 80 20 C 110 26, 130 8, 160 14 C 190 20, 210 32, 240 24 C 270 16, 285 7, 300 5 L300 48 L0 48Z"
+                        fill="url(#sg2)" />
+                    </svg>
                   </div>
+                </>
+              )
+
+              // Logged in, still loading — render nothing to avoid flash
+              if (!digestReady) return null
+
+              // Logged in, has real workout or meal data
+              const hasData = digestData && (digestData.recentWorkouts.length > 0 || digestData.recentMeals.length > 0 || digestData.workoutDaysThisWeek > 0 || digestData.totalCaloriesToday > 0)
+              if (hasData) return (
+                <>
+                  <div className="v1-digest-trends">
+                    <div className="v1-digest-row">
+                      <span>Workout Days This Week</span>
+                      <span className="v1-digest-row-val">{digestData!.workoutDaysThisWeek} day{digestData!.workoutDaysThisWeek !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="v1-digest-row">
+                      <span>Avg Daily Protein</span>
+                      <span className="v1-digest-row-val">{digestData!.avgProteinThisWeek > 0 ? `${digestData!.avgProteinThisWeek} g` : '—'}</span>
+                    </div>
+                    <div className="v1-digest-row">
+                      <span>Calories Today</span>
+                      <span className="v1-digest-row-val">{digestData!.totalCaloriesToday > 0 ? `${digestData!.totalCaloriesToday} kcal` : '—'}</span>
+                    </div>
+                  </div>
+                  {digestData!.recentWorkouts.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div className="v1-card-label" style={{ marginBottom: 6 }}>Recent Workouts</div>
+                      {digestData!.recentWorkouts.map((w, i) => (
+                        <div key={i} className="v1-digest-row">
+                          <span>{w.exercise}</span>
+                          <span className="v1-digest-row-val">
+                            {w.sets ? `${w.sets}×` : ''}{w.reps || ''}{w.weights_kg ? ` @ ${w.weights_kg.split(',')[0]}kg` : ''}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {digestData!.recentMeals.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div className="v1-card-label" style={{ marginBottom: 6 }}>Today&apos;s Meals</div>
+                      {digestData!.recentMeals.map((m, i) => (
+                        <div key={i} className="v1-digest-row">
+                          <span>{m.meal_name}</span>
+                          <span className="v1-digest-row-val">{m.calories ? `${m.calories} kcal` : ''}{m.protein_g ? ` · ${m.protein_g}g protein` : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )
+
+              // Logged in, no data yet — onboarding empty state
+              return (
+                <div className="v1-digest-empty">
+                  <p className="v1-digest-empty-title">Nightly AI summary — calories, workouts, weight. Weekly & monthly patterns over time.</p>
+                  <ul className="v1-digest-empty-list">
+                    <li>Diet — &ldquo;Chicken rice, ~600 cal&rdquo;</li>
+                    <li>Workout — &ldquo;Bench 4×8 at 80kg&rdquo;</li>
+                    <li>Weight — &ldquo;74.2 this morning&rdquo;</li>
+                    <li>MrTracker analyses it all</li>
+                  </ul>
                 </div>
-                {digestData.recentWorkouts.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="v1-card-label" style={{ marginBottom: 6 }}>Recent Workouts</div>
-                    {digestData.recentWorkouts.map((w, i) => (
-                      <div key={i} className="v1-digest-row">
-                        <span>{w.exercise}</span>
-                        <span className="v1-digest-row-val">
-                          {w.sets ? `${w.sets}×` : ''}{w.reps || ''}{w.weights_kg ? ` @ ${w.weights_kg.split(',')[0]}kg` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {digestData.recentMeals.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="v1-card-label" style={{ marginBottom: 6 }}>Today&apos;s Meals</div>
-                    {digestData.recentMeals.map((m, i) => (
-                      <div key={i} className="v1-digest-row">
-                        <span>{m.meal_name}</span>
-                        <span className="v1-digest-row-val">{m.calories ? `${m.calories} kcal` : ''}{m.protein_g ? ` · ${m.protein_g}g protein` : ''}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : digestReady ? (
-              <div className="v1-digest-empty">
-                <p className="v1-digest-empty-title">Nightly AI summary — calories, workouts, weight. Weekly & monthly patterns over time.</p>
-                <ul className="v1-digest-empty-list">
-                  <li>Diet — &ldquo;Chicken rice, ~600 cal&rdquo;</li>
-                  <li>Workout — &ldquo;Bench 4×8 at 80kg&rdquo;</li>
-                  <li>Weight — &ldquo;74.2 this morning&rdquo;</li>
-                  <li>MrTracker analyses it all</li>
-                </ul>
-              </div>
-            ) : null}
+              )
+            })()}
             {user && (
               <div className="v1-digest-action">
                 <button className="v1-process-btn" onClick={handleProcess} disabled={processing}>
