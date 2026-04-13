@@ -6,6 +6,15 @@ import { createSupabaseBrowser } from '@/lib/supabase'
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface RealLog { id: string; text: string; logged_at: string }
 interface HeatDay { level: 0 | 1 | 2 | 3; count: number; dateLabel: string }
+interface WorkoutRow { exercise: string; sets: number; reps: string; weights_kg: string; workout_date: string }
+interface NutritionRow { meal_name: string; calories: number; protein_g: number; carbs_g: number; fat_g: number; meal_date: string }
+interface DigestData {
+  workoutDaysThisWeek: number
+  avgProteinThisWeek: number
+  totalCaloriesToday: number
+  recentWorkouts: WorkoutRow[]
+  recentMeals: NutritionRow[]
+}
 
 // ─── Content ─────────────────────────────────────────────────────────────────
 const TYPEWRITER_PHRASES = [
@@ -469,6 +478,23 @@ body:has(.v1-root) { background: #a69c97; }
   font-size: 11px; font-weight: 300; color: rgba(212,224,190,0.95);
   letter-spacing: 0.02em;
 }
+.v1-digest-empty {
+  padding: 4px 0 8px;
+}
+.v1-digest-empty-title {
+  font-size: 13px; font-weight: 300; color: rgba(45,45,45,0.55);
+  margin-bottom: 12px;
+}
+.v1-digest-empty-list {
+  list-style: none; display: flex; flex-direction: column; gap: 8px;
+}
+.v1-digest-empty-list li {
+  font-size: 12px; font-weight: 300; color: rgba(45,45,45,0.50);
+  line-height: 1.5; padding-left: 14px; position: relative;
+}
+.v1-digest-empty-list li::before {
+  content: '·'; position: absolute; left: 0; color: rgba(45,45,45,0.35);
+}
 
 /* ── Input Bar ─────────────────────────────────────────── */
 .v1-input-bar {
@@ -632,6 +658,7 @@ export default function DashboardPage() {
   const [realLogs, setRealLogs] = useState<RealLog[]>([])
   const [realHeat, setRealHeat] = useState<HeatDay[] | null>(null)
   const [realStats, setRealStats] = useState<{ streak: number; best: number; total: number } | null>(null)
+  const [digestData, setDigestData] = useState<DigestData | null>(null)
   const [processing, setProcessing] = useState(false)
   const [processMsg, setProcessMsg] = useState('')
 
@@ -722,7 +749,14 @@ export default function DashboardPage() {
     since.setDate(since.getDate() - 29)
     since.setHours(0, 0, 0, 0)
 
-    const [logsRes, heatRes] = await Promise.all([
+    const weekStart = new Date()
+    weekStart.setDate(weekStart.getDate() - 6)
+    weekStart.setHours(0, 0, 0, 0)
+    const weekStartStr = weekStart.toISOString().split('T')[0]
+
+    const todayStr = new Date().toISOString().split('T')[0]
+
+    const [logsRes, heatRes, workoutsRes, nutritionRes] = await Promise.all([
       supabase.from('raw_logs')
         .select('id, text, logged_at')
         .eq('user_id', userId)
@@ -732,6 +766,18 @@ export default function DashboardPage() {
         .select('logged_at')
         .eq('user_id', userId)
         .gte('logged_at', since.toISOString()),
+      supabase.from('workouts')
+        .select('exercise, sets, reps, weights_kg, workout_date')
+        .eq('user_id', userId)
+        .gte('workout_date', weekStartStr)
+        .order('workout_date', { ascending: false })
+        .limit(10),
+      supabase.from('nutrition')
+        .select('meal_name, calories, protein_g, carbs_g, fat_g, meal_date')
+        .eq('user_id', userId)
+        .gte('meal_date', weekStartStr)
+        .order('meal_date', { ascending: false })
+        .limit(10),
     ])
 
     if (logsRes.data) setRealLogs(logsRes.data)
@@ -745,6 +791,28 @@ export default function DashboardPage() {
       const heat = buildHeatFromMap(dayMap)
       setRealHeat(heat)
       setRealStats(computeStats(heat))
+    }
+
+    if (workoutsRes.data || nutritionRes.data) {
+      const workouts = workoutsRes.data ?? []
+      const nutrition = nutritionRes.data ?? []
+
+      const workoutDays = new Set(workouts.map(w => w.workout_date)).size
+      const weekNutrition = nutrition
+      const avgProtein = weekNutrition.length > 0
+        ? Math.round(weekNutrition.reduce((s, n) => s + (n.protein_g ?? 0), 0) / Math.max(new Set(weekNutrition.map(n => n.meal_date)).size, 1))
+        : 0
+      const totalCaloriesToday = nutrition
+        .filter(n => n.meal_date === todayStr)
+        .reduce((s, n) => s + (n.calories ?? 0), 0)
+
+      setDigestData({
+        workoutDaysThisWeek: workoutDays,
+        avgProteinThisWeek: avgProtein,
+        totalCaloriesToday,
+        recentWorkouts: workouts.slice(0, 5),
+        recentMeals: nutrition.filter(n => n.meal_date === todayStr).slice(0, 5),
+      })
     }
   }
 
@@ -812,8 +880,8 @@ export default function DashboardPage() {
   }
 
   // Display values: real data for logged-in, showcase for logged-out
-  const displayHeat = realHeat ?? showcaseHeat.current
-  const displayStats = realStats ?? { streak: 7, best: 14, total: 21 }
+  const displayHeat = (user && realHeat) ? realHeat : (!user ? showcaseHeat.current : null)
+  const displayStats = (user && realStats) ? realStats : (!user ? { streak: 7, best: 14, total: 21 } : null)
 
   return (
     <div className="v1-root">
@@ -853,10 +921,10 @@ export default function DashboardPage() {
 
       {/* ── Hero ── */}
       <section className="v1-hero">
-        <h1>Tracking made easy.</h1>
+        <h1>No-touch tracking.</h1>
         <p className="v1-hero-sub">
-          Just tell MrTracker. Rest is taken care of.<br />
-          Connect with Apple Shortcuts — Zero screen taps. No distraction.
+          Just speak. MrTracker handles the rest.<br />
+          One-time setup with Siri — zero taps, zero screen time, every day.
         </p>
         <div className="v1-hero-capsule-wrap">
           <div className="v1-capsule">
@@ -897,11 +965,11 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="v1-heatmap-grid" role="img" aria-label="30-day activity heatmap">
-                {displayHeat.map((cell, i) => (
+                {(displayHeat ?? Array.from({ length: 30 }, (_, i) => ({ level: 0 as const, count: 0, dateLabel: '' }))).map((cell, i) => (
                   <div
                     key={i}
                     className={`v1-heat-cell v1-heat-${cell.level}`}
-                    data-tip={`${cell.dateLabel}: ${cell.count === 0 ? 'No logs' : `${cell.count} log${cell.count !== 1 ? 's' : ''}`}`}
+                    data-tip={cell.dateLabel ? `${cell.dateLabel}: ${cell.count === 0 ? 'No logs' : `${cell.count} log${cell.count !== 1 ? 's' : ''}`}` : undefined}
                   />
                 ))}
               </div>
@@ -911,15 +979,15 @@ export default function DashboardPage() {
               <div className="v1-card-label">Stats</div>
               <div className="v1-heatmap-stats">
                 <div className="v1-heatmap-stat">
-                  <span className="v1-heatmap-stat-val">{displayStats.streak}</span>
+                  <span className="v1-heatmap-stat-val">{displayStats ? displayStats.streak : '—'}</span>
                   <span className="v1-heatmap-stat-key">Day streak</span>
                 </div>
                 <div className="v1-heatmap-stat">
-                  <span className="v1-heatmap-stat-val">{displayStats.best}</span>
+                  <span className="v1-heatmap-stat-val">{displayStats ? displayStats.best : '—'}</span>
                   <span className="v1-heatmap-stat-key">Best streak</span>
                 </div>
                 <div className="v1-heatmap-stat">
-                  <span className="v1-heatmap-stat-val">{displayStats.total}</span>
+                  <span className="v1-heatmap-stat-val">{displayStats ? displayStats.total : '—'}</span>
                   <span className="v1-heatmap-stat-key">Logs this month</span>
                 </div>
               </div>
@@ -931,43 +999,58 @@ export default function DashboardPage() {
         <div className="v1-card v1-card-digest">
           <div className="v1-card-label">AI Digest</div>
           <div className="v1-digest-body">
-            <div className="v1-digest-metric">
-              <span className="v1-digest-value">84%</span>
-              <span className="v1-digest-label">Weekly Score</span>
-            </div>
-            <p className="v1-digest-summary">
-              You hit <strong>5 of 6 workout days</strong> this week. Protein intake averaged{' '}
-              <strong>148g/day</strong> — on target. Sleep improved after cutting late caffeine.
-            </p>
-            <div className="v1-digest-trends">
-              <div className="v1-digest-row">
-                <span>Workout Consistency</span>
-                <span className="v1-digest-row-val">5 / 6 days</span>
+            {digestData ? (
+              <>
+                <div className="v1-digest-trends">
+                  <div className="v1-digest-row">
+                    <span>Workout Days This Week</span>
+                    <span className="v1-digest-row-val">{digestData.workoutDaysThisWeek} day{digestData.workoutDaysThisWeek !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="v1-digest-row">
+                    <span>Avg Daily Protein</span>
+                    <span className="v1-digest-row-val">{digestData.avgProteinThisWeek > 0 ? `${digestData.avgProteinThisWeek} g` : '—'}</span>
+                  </div>
+                  <div className="v1-digest-row">
+                    <span>Calories Today</span>
+                    <span className="v1-digest-row-val">{digestData.totalCaloriesToday > 0 ? `${digestData.totalCaloriesToday} kcal` : '—'}</span>
+                  </div>
+                </div>
+                {digestData.recentWorkouts.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="v1-card-label" style={{ marginBottom: 6 }}>Recent Workouts</div>
+                    {digestData.recentWorkouts.map((w, i) => (
+                      <div key={i} className="v1-digest-row">
+                        <span>{w.exercise}</span>
+                        <span className="v1-digest-row-val">
+                          {w.sets ? `${w.sets}×` : ''}{w.reps || ''}{w.weights_kg ? ` @ ${w.weights_kg.split(',')[0]}kg` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {digestData.recentMeals.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="v1-card-label" style={{ marginBottom: 6 }}>Today&apos;s Meals</div>
+                    {digestData.recentMeals.map((m, i) => (
+                      <div key={i} className="v1-digest-row">
+                        <span>{m.meal_name}</span>
+                        <span className="v1-digest-row-val">{m.calories ? `${m.calories} kcal` : ''}{m.protein_g ? ` · ${m.protein_g}g protein` : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="v1-digest-empty">
+                <p className="v1-digest-empty-title">Your summary will appear here</p>
+                <ul className="v1-digest-empty-list">
+                  <li>Tell MrTracker what you ate — &ldquo;Had chicken and rice, 600 calories&rdquo;</li>
+                  <li>Log your workout — &ldquo;Bench press 4 sets of 8 at 80kg&rdquo;</li>
+                  <li>Track your weight — &ldquo;Weight 74.2 this morning&rdquo;</li>
+                  <li>Hit <strong>Run AI Analysis</strong> to get a combined summary</li>
+                </ul>
               </div>
-              <div className="v1-digest-row">
-                <span>Avg Daily Protein</span>
-                <span className="v1-digest-row-val">148 g ↑</span>
-              </div>
-              <div className="v1-digest-row">
-                <span>Logs This Week</span>
-                <span className="v1-digest-row-val">24 entries</span>
-              </div>
-            </div>
-            <div className="v1-sparkline">
-              <svg width="100%" height="48" viewBox="0 0 300 48"
-                preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                  <linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
-                    <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                  </linearGradient>
-                </defs>
-                <path d="M0 38 C 40 38, 50 14, 80 20 C 110 26, 130 8, 160 14 C 190 20, 210 32, 240 24 C 270 16, 285 7, 300 5"
-                  fill="none" stroke="rgba(255,255,255,0.50)" strokeWidth="2" strokeLinecap="round" />
-                <path d="M0 38 C 40 38, 50 14, 80 20 C 110 26, 130 8, 160 14 C 190 20, 210 32, 240 24 C 270 16, 285 7, 300 5 L300 48 L0 48Z"
-                  fill="url(#sg2)" />
-              </svg>
-            </div>
+            )}
             {user && (
               <div className="v1-digest-action">
                 <button className="v1-process-btn" onClick={handleProcess} disabled={processing}>
@@ -982,12 +1065,12 @@ export default function DashboardPage() {
 
         {/* Card 3 — Tracking Options */}
         <div className="v1-card v1-card-cta">
-          <div className="v1-cta-tracking-label">Tracking options</div>
-          <h3 className="v1-cta-title">Log without opening the app</h3>
+          <div className="v1-cta-tracking-label">One-time setup</div>
+          <h3 className="v1-cta-title">Log without touching your phone</h3>
           <div className="v1-cta-steps">
             <div className="v1-cta-step">
               <span className="v1-cta-step-num">1</span>
-              Install the iOS Shortcut below
+              Set up the Siri Shortcut once
             </div>
             <div className="v1-cta-step">
               <span className="v1-cta-step-num">2</span>
@@ -995,20 +1078,20 @@ export default function DashboardPage() {
             </div>
             <div className="v1-cta-step">
               <span className="v1-cta-step-num">3</span>
-              Speak — AI logs everything
+              Speak — AI logs and analyses everything
             </div>
           </div>
           <p className="v1-cta-body">
-            Or tap an NFC sticker on your gym bag or kitchen counter — no need to open any app.
+            Works on iPhone, Apple Watch, and Mac. Use your voice from anywhere — gym, kitchen, car.
           </p>
-          <a href={user ? '/shortcut' : '#'} className="v1-cta-btn">
+          <a href={user ? '/shortcut' : '/login'} className="v1-cta-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" x2="12" y1="15" y2="3" />
             </svg>
-            {user ? 'Set Up iOS Shortcut' : 'Get iOS Shortcut'}
+            Setup iOS Shortcut
           </a>
         </div>
 

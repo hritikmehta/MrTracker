@@ -205,6 +205,19 @@ body:has(.sc-root) { background: #a69c97; }
 .sc-test-ok  { color: rgba(212,224,190,0.95); }
 .sc-test-err { color: rgba(220,80,60,0.9); }
 
+/* Devices */
+.sc-devices { display: flex; flex-direction: column; gap: 12px; }
+.sc-device {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+}
+.sc-device-icon { font-size: 22px; line-height: 1; margin-top: 2px; }
+.sc-device-name { font-size: 13px; font-weight: 400; color: #2d2d2d; margin-bottom: 3px; }
+.sc-device-desc { font-size: 12px; font-weight: 300; color: rgba(45,45,45,0.52); line-height: 1.5; }
+
 /* Loading / unauthed states */
 .sc-center {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -316,33 +329,120 @@ export default function ShortcutSetupPage() {
 
         <div className="sc-content">
           <div className="sc-hero">
-            <h1>iOS Shortcut Setup</h1>
+            <h1>Setup iOS Shortcut</h1>
             <p>
-              Speak a log from anywhere on your iPhone — no app needed.
-              Takes 2 minutes to set up, works with Siri or a home screen button.
+              One setup. Then just speak — from your iPhone, Apple Watch, or Mac.
+              No screen taps. No app to open. MrTracker logs and analyses everything for you.
             </p>
           </div>
 
-          {/* Your API token */}
+          {/* Works on */}
           <div className="sc-card">
-            <div className="sc-card-label">Your API Token</div>
+            <div className="sc-card-label">Works on</div>
+            <div className="sc-devices">
+              <div className="sc-device">
+                <span className="sc-device-icon">📱</span>
+                <div>
+                  <div className="sc-device-name">iPhone</div>
+                  <div className="sc-device-desc">Say &ldquo;Hey Siri, run Tracker&rdquo; or tap a home screen button</div>
+                </div>
+              </div>
+              <div className="sc-device">
+                <span className="sc-device-icon">⌚</span>
+                <div>
+                  <div className="sc-device-name">Apple Watch</div>
+                  <div className="sc-device-desc">Raise wrist, say &ldquo;Hey Siri, run Tracker&rdquo; — log from the gym floor</div>
+                </div>
+              </div>
+              <div className="sc-device">
+                <span className="sc-device-icon">💻</span>
+                <div>
+                  <div className="sc-device-name">Mac</div>
+                  <div className="sc-device-desc">Use Siri or the menu bar shortcut to log from your desktop</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Your token */}
+          <div className="sc-card" style={{ animationDelay: '0.05s' }}>
+            <div className="sc-card-label">Your Private Token</div>
             <div className="sc-token-row">
               <div className="sc-token-val">{userId}</div>
               <button className={`sc-copy-btn${copiedId ? ' copied' : ''}`}
-                onClick={() => copy(userId, 'id')}>
+                onClick={() => copy(userId!, 'id')}>
                 {copiedId ? 'Copied ✓' : 'Copy'}
               </button>
             </div>
             <p className="sc-token-note">
-              This is your private token — keep it to yourself. Paste it into the shortcut as your Bearer token.
+              This identifies you when Siri logs your entry. Keep it private — paste it into the shortcut once and forget it.
             </p>
           </div>
 
-          {/* Endpoint URL */}
-          <div className="sc-card" style={{ animationDelay: '0.05s' }}>
-            <div className="sc-card-label">API Endpoint</div>
+          {/* Setup steps */}
+          <div className="sc-card" style={{ animationDelay: '0.10s' }}>
+            <div className="sc-card-label">Setup — 5 steps, done once</div>
+            <div className="sc-steps">
+              <div className="sc-step">
+                <div className="sc-step-num">1</div>
+                <div className="sc-step-body">
+                  <div className="sc-step-title">Open Shortcuts app → tap +</div>
+                  <div className="sc-step-desc">Name it <strong>Tracker</strong> — this lets you say &ldquo;Hey Siri, run Tracker&rdquo; from any Apple device.</div>
+                </div>
+              </div>
+
+              <div className="sc-step">
+                <div className="sc-step-num">2</div>
+                <div className="sc-step-body">
+                  <div className="sc-step-title">Add action: Dictate Text</div>
+                  <div className="sc-step-desc">This captures your voice. Speak anything — workout, meal, weight, how you feel.</div>
+                </div>
+              </div>
+
+              <div className="sc-step">
+                <div className="sc-step-num">3</div>
+                <div className="sc-step-body">
+                  <div className="sc-step-title">Add action: Get Contents of URL</div>
+                  <div className="sc-step-desc">Tap <strong>Show More</strong> → Method: <strong>POST</strong>. Configure:</div>
+                  <div className="sc-step-code">URL: {endpointUrl}</div>
+                  <br />
+                  <div className="sc-step-desc">Under <strong>Headers</strong>, add:</div>
+                  <div className="sc-step-code">Authorization: Bearer {userId}</div>
+                  <br />
+                  <div className="sc-step-desc">Under <strong>Request Body</strong> → JSON, add two fields:</div>
+                  <div className="sc-step-code">text → Dictated Text</div>
+                  <div className="sc-step-code">source → shortcut</div>
+                </div>
+              </div>
+
+              <div className="sc-step">
+                <div className="sc-step-num">4</div>
+                <div className="sc-step-body">
+                  <div className="sc-step-title">Add action: Show Notification</div>
+                  <div className="sc-step-desc">Quick confirmation so you know it logged. Set body to <strong>Logged ✓</strong></div>
+                </div>
+              </div>
+
+              <div className="sc-step">
+                <div className="sc-step-num">5</div>
+                <div className="sc-step-body">
+                  <div className="sc-step-title">Test it — then you&apos;re done forever</div>
+                  <div className="sc-step-desc">
+                    Say &ldquo;Hey Siri, run Tracker&rdquo; and speak a log. Then come back and hit <strong>Test connection</strong> below to confirm it&apos;s working.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Test */}
+          <div className="sc-card" style={{ animationDelay: '0.15s' }}>
+            <div className="sc-card-label">Test Your Connection</div>
+            <p className="sc-token-note" style={{ marginBottom: 12 }}>
+              Once you&apos;ve set up the shortcut, tap below to confirm MrTracker can receive your logs.
+            </p>
             <div className="sc-token-row">
-              <div className="sc-token-val">{endpointUrl}</div>
+              <div className="sc-token-val" style={{ fontSize: 11 }}>{endpointUrl}</div>
               <button className={`sc-copy-btn${copiedUrl ? ' copied' : ''}`}
                 onClick={() => copy(endpointUrl, 'url')}>
                 {copiedUrl ? 'Copied ✓' : 'Copy'}
@@ -358,79 +458,6 @@ export default function ShortcutSetupPage() {
                   {testResult.msg}
                 </span>
               )}
-            </div>
-          </div>
-
-          {/* Steps */}
-          <div className="sc-card" style={{ animationDelay: '0.10s' }}>
-            <div className="sc-card-label">Build the Shortcut — 5 steps</div>
-            <div className="sc-steps">
-              <div className="sc-step">
-                <div className="sc-step-num">1</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Open the Shortcuts app → tap +</div>
-                  <div className="sc-step-desc">Create a new shortcut. Name it <strong>Tracker</strong> so you can say "Hey Siri, run Tracker".</div>
-                </div>
-              </div>
-
-              <div className="sc-step">
-                <div className="sc-step-num">2</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add action: Dictate Text</div>
-                  <div className="sc-step-desc">
-                    Search for <strong>Dictate Text</strong>. Set language to your preferred language.
-                    This records what you say and stores it as a variable.
-                  </div>
-                </div>
-              </div>
-
-              <div className="sc-step">
-                <div className="sc-step-num">3</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add action: Get Contents of URL</div>
-                  <div className="sc-step-desc">
-                    Search for <strong>Get Contents of URL</strong>. Configure it:
-                  </div>
-                  <div className="sc-step-code">URL: {endpointUrl}</div>
-                  <br />
-                  <div className="sc-step-desc">
-                    Tap <strong>Show More</strong> → set Method to <strong>POST</strong>.
-                    Under <strong>Headers</strong>, add:
-                  </div>
-                  <div className="sc-step-code">Authorization: Bearer {userId}</div>
-                  <div className="sc-step-code">Content-Type: application/json</div>
-                  <br />
-                  <div className="sc-step-desc">
-                    Under <strong>Request Body</strong>, choose <strong>JSON</strong>.
-                    Add two fields:
-                  </div>
-                  <div className="sc-step-code">text → Dictated Text (select from variables)</div>
-                  <div className="sc-step-code">source → shortcut</div>
-                </div>
-              </div>
-
-              <div className="sc-step">
-                <div className="sc-step-num">4</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add action: Show Notification</div>
-                  <div className="sc-step-desc">
-                    Search for <strong>Show Notification</strong>. Set:
-                  </div>
-                  <div className="sc-step-code">Title: MrTracker</div>
-                  <div className="sc-step-code">Body: Logged ✓</div>
-                </div>
-              </div>
-
-              <div className="sc-step">
-                <div className="sc-step-num">5</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add to home screen or use Siri</div>
-                  <div className="sc-step-desc">
-                    Say <strong>&ldquo;Hey Siri, run Tracker&rdquo;</strong> — or add the shortcut to your home screen as a button.
-                    Tap once, speak, done.
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
