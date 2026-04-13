@@ -969,7 +969,7 @@ export default function DashboardPage() {
 
       {/* ── Hero ── */}
       <section className="v1-hero">
-        <h1>No-touch tracking.</h1>
+        <h1>Tracking Made Simple.</h1>
         <p className="v1-hero-sub">
           Just speak. MrTracker handles the rest.<br />
           One-time setup with Siri — zero taps, zero screen time, every day.
