@@ -536,6 +536,10 @@ body:has(.v1-root) { background: #a69c97; }
 .v1-digest-empty-list li::before {
   content: '·'; position: absolute; left: 0; color: rgba(45,45,45,0.35);
 }
+.v1-digest-empty-footer {
+  font-size: 12px; font-weight: 400; color: rgba(45,45,45,0.45);
+  margin-top: 10px;
+}
 
 /* ── Input Bar ─────────────────────────────────────────── */
 .v1-input-bar {
@@ -1141,13 +1145,13 @@ export default function DashboardPage() {
               // Logged in, no data yet — onboarding empty state
               return (
                 <div className="v1-digest-empty">
-                  <p className="v1-digest-empty-title">Nightly AI summary — calories, workouts, weight. Weekly & monthly patterns over time.</p>
+                  <p className="v1-digest-empty-title">Nightly AI summary — calories, workouts, weight. Better insights over time.</p>
                   <ul className="v1-digest-empty-list">
                     <li>Diet — &ldquo;Chicken rice, ~600 cal&rdquo;</li>
                     <li>Workout — &ldquo;Bench 4×8 at 80kg&rdquo;</li>
                     <li>Weight — &ldquo;74.2 this morning&rdquo;</li>
-                    <li>MrTracker analyses it all</li>
                   </ul>
+                  <p className="v1-digest-empty-footer">MrTracker analyses it all</p>
                 </div>
               )
             })()}
