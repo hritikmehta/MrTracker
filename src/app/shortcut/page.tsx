@@ -396,9 +396,9 @@ export default function ShortcutSetupPage() {
           <div className="sc-card" style={{ animationDelay: '0.10s' }}>
             <div className="sc-card-label">Download Shortcut</div>
             <p className="sc-token-note" style={{ marginBottom: 14 }}>
-              Tap on your iPhone to install. Then open it, find the <strong>Authorization</strong> header, and replace the value with <strong>Bearer + your token above</strong>.
+              Tap on your iPhone — your token is pre-configured. Install and you&apos;re ready.
             </p>
-            <a href="/MrTracker.shortcut" className="sc-download-btn">
+            <a href="/api/shortcut" className="sc-download-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
