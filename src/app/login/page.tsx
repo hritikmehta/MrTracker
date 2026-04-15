@@ -498,7 +498,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <a href="/" className="v1-login-back">← Back</a>
+        <span className="v1-login-back">← Back</span>
       </div>
     </>
   )
