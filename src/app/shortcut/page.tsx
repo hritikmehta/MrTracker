@@ -37,7 +37,7 @@ body:has(.sc-root) { background: #a69c97; }
   position: relative; z-index: 10;
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 36px;
-  max-width: 800px; margin: 0 auto;
+  max-width: 900px; margin: 0 auto;
 }
 .sc-badge {
   background: #1c1c1e; color: #fff;
@@ -58,11 +58,11 @@ body:has(.sc-root) { background: #a69c97; }
 /* Content */
 .sc-content {
   position: relative; z-index: 10;
-  max-width: 800px; margin: 0 auto;
+  max-width: 900px; margin: 0 auto;
   padding: 0 36px;
 }
 .sc-hero {
-  padding: 32px 0 40px;
+  padding: 32px 0 32px;
   animation: scFadeUp 0.6s ease both;
 }
 @keyframes scFadeUp {
@@ -76,10 +76,10 @@ body:has(.sc-root) { background: #a69c97; }
 }
 .sc-hero p {
   font-size: 14px; font-weight: 300; color: rgba(45,45,45,0.55);
-  line-height: 1.6; max-width: 480px;
+  line-height: 1.6; max-width: 520px;
 }
 
-/* Cards */
+/* Card */
 .sc-card {
   background: rgba(255,255,255,0.08);
   backdrop-filter: blur(40px) saturate(120%);
@@ -87,10 +87,7 @@ body:has(.sc-root) { background: #a69c97; }
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 24px; padding: 24px 26px;
   position: relative;
-  box-shadow:
-    0 20px 40px rgba(0,0,0,0.06),
-    inset 0 1px 0 rgba(255,255,255,0.28);
-  margin-bottom: 14px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.28);
   animation: scFadeUp 0.6s ease both;
 }
 .sc-card::before {
@@ -102,136 +99,106 @@ body:has(.sc-root) { background: #a69c97; }
 .sc-card-label {
   font-size: 10px; font-weight: 400; letter-spacing: 0.10em;
   text-transform: uppercase; color: rgba(45,45,45,0.42);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
-/* Token row */
-.sc-token-row {
-  display: flex; align-items: center; gap: 10px;
+/* Works On — horizontal devices */
+.sc-devices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
-.sc-token-val {
-  flex: 1; min-width: 0;
-  font-size: 13px; font-weight: 300; color: rgba(45,45,45,0.70);
-  background: rgba(255,255,255,0.16);
-  border: 1px solid rgba(255,255,255,0.28);
-  border-radius: 10px; padding: 10px 14px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  letter-spacing: 0.02em;
+.sc-device {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 14px 14px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 16px;
 }
-.sc-copy-btn {
-  flex-shrink: 0;
-  padding: 9px 16px;
-  background: rgba(255,255,255,0.18); color: rgba(45,45,45,0.65);
-  font-family: 'Outfit', sans-serif;
-  font-size: 12px; font-weight: 300; letter-spacing: 0.02em;
-  border-radius: 20px; border: 1px solid rgba(255,255,255,0.30); cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-  white-space: nowrap;
-}
-.sc-copy-btn:hover { background: rgba(255,255,255,0.30); transform: translateY(-1px); }
-.sc-copy-btn.copied {
-  background: rgba(212,224,190,0.30);
-  border-color: rgba(212,224,190,0.45);
-  color: rgba(45,45,45,0.80);
-}
-.sc-token-note {
-  font-size: 11.5px; font-weight: 300; color: rgba(45,45,45,0.42);
-  margin-top: 8px; line-height: 1.5;
+.sc-device-icon { font-size: 22px; line-height: 1; }
+.sc-device-name { font-size: 13px; font-weight: 400; color: #2d2d2d; }
+.sc-device-desc { font-size: 11.5px; font-weight: 300; color: rgba(45,45,45,0.50); line-height: 1.5; }
+
+/* Two-col layout */
+.sc-two-col {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 14px;
+  margin-top: 14px;
+  align-items: start;
 }
 
 /* Steps */
-.sc-steps { display: flex; flex-direction: column; gap: 10px; }
+.sc-steps { display: flex; flex-direction: column; gap: 8px; }
 .sc-step {
-  display: flex; gap: 14px; align-items: flex-start;
-  padding: 14px 16px;
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 14px;
-}
-.sc-step-num {
-  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-  background: #1c1c1e; color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 400;
-  margin-top: 1px;
-}
-.sc-step-body { flex: 1; }
-.sc-step-title {
-  font-size: 13px; font-weight: 400; color: #2d2d2d;
-  margin-bottom: 4px;
-}
-.sc-step-desc {
-  font-size: 12px; font-weight: 300; color: rgba(45,45,45,0.52);
-  line-height: 1.55;
-}
-.sc-step-code {
-  display: inline-block; margin-top: 6px;
-  font-size: 11.5px; font-weight: 300;
-  background: rgba(255,255,255,0.22);
-  border: 1px solid rgba(255,255,255,0.35);
-  border-radius: 8px; padding: 5px 10px;
-  color: rgba(45,45,45,0.72); letter-spacing: 0.01em;
-  font-family: 'Outfit', monospace;
-}
-
-/* Test button */
-.sc-test-row {
-  display: flex; align-items: center; gap: 12px;
-  margin-top: 6px; flex-wrap: wrap;
-}
-.sc-test-btn {
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 10px 18px;
-  background: rgba(212,224,190,0.18); color: rgba(45,45,45,0.72);
-  font-family: 'Outfit', sans-serif;
-  font-size: 12px; font-weight: 300; letter-spacing: 0.02em;
-  border-radius: 20px; border: 1px solid rgba(212,224,190,0.35); cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
-  transition: transform 0.15s, background 0.15s, opacity 0.15s;
-}
-.sc-test-btn:hover:not(:disabled) { transform: translateY(-1px); background: rgba(212,224,190,0.28); }
-.sc-test-btn:disabled { opacity: 0.50; cursor: not-allowed; }
-.sc-test-spinner {
-  width: 11px; height: 11px;
-  border: 1.5px solid rgba(45,45,45,0.2);
-  border-top-color: rgba(45,45,45,0.65);
-  border-radius: 50%;
-  animation: scSpin 0.65s linear infinite;
-}
-@keyframes scSpin { to { transform: rotate(360deg); } }
-.sc-test-result {
-  font-size: 11.5px; font-weight: 300; letter-spacing: 0.02em;
-}
-.sc-test-ok  { color: rgba(212,224,190,0.95); }
-.sc-test-err { color: rgba(220,80,60,0.9); }
-
-/* Download button */
-.sc-download-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 11px 20px;
-  background: #1c1c1e; color: #fff;
-  font-family: 'Outfit', sans-serif;
-  font-size: 13px; font-weight: 300; letter-spacing: 0.02em;
-  border-radius: 999px; text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-  transition: opacity 0.15s, transform 0.15s;
-}
-.sc-download-btn:hover { opacity: 0.82; transform: translateY(-1px); }
-
-/* Devices */
-.sc-devices { display: flex; flex-direction: column; gap: 12px; }
-.sc-device {
-  display: flex; align-items: flex-start; gap: 14px;
+  display: flex; gap: 12px; align-items: flex-start;
   padding: 12px 14px;
   background: rgba(255,255,255,0.10);
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 14px;
 }
-.sc-device-icon { font-size: 22px; line-height: 1; margin-top: 2px; }
-.sc-device-name { font-size: 13px; font-weight: 400; color: #2d2d2d; margin-bottom: 3px; }
-.sc-device-desc { font-size: 12px; font-weight: 300; color: rgba(45,45,45,0.52); line-height: 1.5; }
+.sc-step-num {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: #1c1c1e; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 400;
+  margin-top: 1px;
+}
+.sc-step-body { flex: 1; }
+.sc-step-title {
+  font-size: 12.5px; font-weight: 400; color: #2d2d2d;
+  margin-bottom: 4px;
+}
+.sc-step-desc {
+  font-size: 11.5px; font-weight: 300; color: rgba(45,45,45,0.52);
+  line-height: 1.55;
+}
+.sc-step-code {
+  display: block; margin-top: 5px;
+  font-size: 11px; font-weight: 300;
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 8px; padding: 5px 10px;
+  color: rgba(45,45,45,0.72); letter-spacing: 0.01em;
+  word-break: break-all;
+}
+.sc-step-token {
+  display: block; margin-top: 5px;
+  font-size: 11px; font-weight: 400;
+  background: rgba(212,224,190,0.20);
+  border: 1px solid rgba(212,224,190,0.40);
+  border-radius: 8px; padding: 5px 10px;
+  color: rgba(45,45,45,0.80); letter-spacing: 0.01em;
+  word-break: break-all;
+}
 
-/* Loading / unauthed states */
+/* Download card */
+.sc-download-card {
+  display: flex; flex-direction: column; gap: 16px;
+  height: 100%;
+}
+.sc-download-note {
+  font-size: 12px; font-weight: 300; color: rgba(45,45,45,0.50);
+  line-height: 1.6;
+}
+.sc-download-note strong { color: rgba(45,45,45,0.70); font-weight: 400; }
+.sc-download-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 20px;
+  background: #1c1c1e; color: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px; font-weight: 300; letter-spacing: 0.02em;
+  border-radius: 16px; text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.sc-download-btn:hover { opacity: 0.82; transform: translateY(-1px); }
+.sc-download-prompt {
+  font-size: 11px; font-weight: 300; color: rgba(45,45,45,0.40);
+  line-height: 1.55; text-align: center;
+}
+
+/* Loading / unauthed */
 .sc-center {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 60vh;
@@ -243,10 +210,12 @@ body:has(.sc-root) { background: #a69c97; }
   text-decoration: underline; text-underline-offset: 2px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .sc-header { padding: 16px 20px; }
   .sc-content { padding: 0 18px; }
-  .sc-hero { padding: 24px 0 28px; }
+  .sc-hero { padding: 24px 0 24px; }
+  .sc-devices { grid-template-columns: 1fr; }
+  .sc-two-col { grid-template-columns: 1fr; }
 }
 `
 
@@ -256,14 +225,6 @@ export default function ShortcutSetupPage() {
   const [authReady, setAuthReady] = useState(false)
   const [appUrl, setAppUrl] = useState('')
 
-  // Copy states
-  const [copiedId, setCopiedId] = useState(false)
-  const [copiedUrl, setCopiedUrl] = useState(false)
-
-  // Test ping
-  const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
-
   useEffect(() => {
     setAppUrl(process.env.NEXT_PUBLIC_APP_URL || window.location.origin)
     const supabase = createSupabaseBrowser()
@@ -272,35 +233,6 @@ export default function ShortcutSetupPage() {
       setAuthReady(true)
     })
   }, [])
-
-  function copy(text: string, which: 'id' | 'url') {
-    navigator.clipboard.writeText(text)
-    if (which === 'id') { setCopiedId(true); setTimeout(() => setCopiedId(false), 2000) }
-    else { setCopiedUrl(true); setTimeout(() => setCopiedUrl(false), 2000) }
-  }
-
-  async function testShortcut() {
-    setTesting(true)
-    setTestResult(null)
-    try {
-      const res = await fetch('/api/log', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`,
-        },
-        body: JSON.stringify({ text: 'Shortcut test ping', source: 'shortcut' }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed')
-      setTestResult({ ok: true, msg: 'Connection works ✓' })
-    } catch (err: unknown) {
-      setTestResult({ ok: false, msg: err instanceof Error ? err.message : 'Failed' })
-    } finally {
-      setTesting(false)
-      setTimeout(() => setTestResult(null), 5000)
-    }
-  }
 
   const endpointUrl = `${appUrl}/api/log`
 
@@ -345,152 +277,104 @@ export default function ShortcutSetupPage() {
             <h1>Setup iOS Shortcut</h1>
             <p>
               One setup. Then just speak — from your iPhone, Apple Watch, or Mac.
-              No screen taps. No app to open. MrTracker logs and analyses everything for you.
+              No screen taps. No app to open.
             </p>
           </div>
 
-          {/* Works on */}
+          {/* Works On — horizontal grid */}
           <div className="sc-card">
-            <div className="sc-card-label">Works on</div>
+            <div className="sc-card-label">Works On</div>
             <div className="sc-devices">
               <div className="sc-device">
                 <span className="sc-device-icon">📱</span>
-                <div>
-                  <div className="sc-device-name">iPhone</div>
-                  <div className="sc-device-desc">Say &ldquo;Hey Siri, run Tracker&rdquo; or tap a home screen button</div>
-                </div>
+                <div className="sc-device-name">iPhone</div>
+                <div className="sc-device-desc">Say &ldquo;Hey Siri, run Tracker&rdquo; or tap a home screen button</div>
               </div>
               <div className="sc-device">
                 <span className="sc-device-icon">⌚</span>
-                <div>
-                  <div className="sc-device-name">Apple Watch</div>
-                  <div className="sc-device-desc">Raise wrist, say &ldquo;Hey Siri, run Tracker&rdquo; — log from the gym floor</div>
-                </div>
+                <div className="sc-device-name">Apple Watch</div>
+                <div className="sc-device-desc">Raise wrist, say &ldquo;Hey Siri, run Tracker&rdquo; — log from the gym floor</div>
               </div>
               <div className="sc-device">
                 <span className="sc-device-icon">💻</span>
-                <div>
-                  <div className="sc-device-name">Mac</div>
-                  <div className="sc-device-desc">Use Siri or the menu bar shortcut to log from your desktop</div>
-                </div>
+                <div className="sc-device-name">Mac</div>
+                <div className="sc-device-desc">Use Siri or the menu bar shortcut to log from your desktop</div>
               </div>
             </div>
           </div>
 
-          {/* Your token */}
-          <div className="sc-card" style={{ animationDelay: '0.05s' }}>
-            <div className="sc-card-label">Your Private Token</div>
-            <div className="sc-token-row">
-              <div className="sc-token-val">{userId}</div>
-              <button className={`sc-copy-btn${copiedId ? ' copied' : ''}`}
-                onClick={() => copy(userId!, 'id')}>
-                {copiedId ? 'Copied ✓' : 'Copy'}
-              </button>
-            </div>
-            <p className="sc-token-note">
-              This identifies you when Siri logs your entry. Keep it private — paste it into the shortcut once and forget it.
-            </p>
-          </div>
+          {/* Two-col: Steps left, Download right */}
+          <div className="sc-two-col">
 
-          {/* Download */}
-          <div className="sc-card" style={{ animationDelay: '0.10s' }}>
-            <div className="sc-card-label">Download Shortcut</div>
-            <p className="sc-token-note" style={{ marginBottom: 14 }}>
-              Tap on your iPhone — your token is pre-configured. Install and you&apos;re ready.
-            </p>
-            <a href="/api/shortcut" className="sc-download-btn">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" x2="12" y1="15" y2="3" />
-              </svg>
-              Download MrTracker.shortcut
-            </a>
-          </div>
-
-          {/* Setup steps */}
-          <div className="sc-card" style={{ animationDelay: '0.15s' }}>
-            <div className="sc-card-label">Setup — 5 steps, done once</div>
-            <div className="sc-steps">
-              <div className="sc-step">
-                <div className="sc-step-num">1</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Open Shortcuts app → tap +</div>
-                  <div className="sc-step-desc">Name it <strong>Tracker</strong> — this lets you say &ldquo;Hey Siri, run Tracker&rdquo; from any Apple device.</div>
+            {/* Left — Manual setup steps */}
+            <div className="sc-card" style={{ animationDelay: '0.08s' }}>
+              <div className="sc-card-label">Manual Setup — if not using the download</div>
+              <div className="sc-steps">
+                <div className="sc-step">
+                  <div className="sc-step-num">1</div>
+                  <div className="sc-step-body">
+                    <div className="sc-step-title">Open Shortcuts app → tap +</div>
+                    <div className="sc-step-desc">Name it <strong>Tracker</strong> to trigger with &ldquo;Hey Siri, run Tracker&rdquo;</div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="sc-step">
-                <div className="sc-step-num">2</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add action: Dictate Text</div>
-                  <div className="sc-step-desc">This captures your voice. Speak anything — workout, meal, weight, how you feel.</div>
+                <div className="sc-step">
+                  <div className="sc-step-num">2</div>
+                  <div className="sc-step-body">
+                    <div className="sc-step-title">Add: Dictate Text</div>
+                    <div className="sc-step-desc">Captures your voice — workout, meal, weight, anything.</div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="sc-step">
-                <div className="sc-step-num">3</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add action: Get Contents of URL</div>
-                  <div className="sc-step-desc">Tap <strong>Show More</strong> → Method: <strong>POST</strong>. Configure:</div>
-                  <div className="sc-step-code">URL: {endpointUrl}</div>
-                  <br />
-                  <div className="sc-step-desc">Under <strong>Headers</strong>, add:</div>
-                  <div className="sc-step-code">Authorization: Bearer {userId}</div>
-                  <br />
-                  <div className="sc-step-desc">Under <strong>Request Body</strong> → JSON, add two fields:</div>
-                  <div className="sc-step-code">text → Dictated Text</div>
-                  <div className="sc-step-code">source → shortcut</div>
+                <div className="sc-step">
+                  <div className="sc-step-num">3</div>
+                  <div className="sc-step-body">
+                    <div className="sc-step-title">Add: Get Contents of URL</div>
+                    <div className="sc-step-desc">Method: POST &nbsp;·&nbsp; URL:</div>
+                    <span className="sc-step-code">{endpointUrl}</span>
+                    <div className="sc-step-desc" style={{ marginTop: 8 }}>Authorization header:</div>
+                    <span className="sc-step-token">Bearer {userId}</span>
+                    <div className="sc-step-desc" style={{ marginTop: 8 }}>Body → JSON:</div>
+                    <span className="sc-step-code">text → Dictated Text</span>
+                    <span className="sc-step-code" style={{ marginTop: 4 }}>source → shortcut</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="sc-step">
-                <div className="sc-step-num">4</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Add action: Show Notification</div>
-                  <div className="sc-step-desc">Quick confirmation so you know it logged. Set body to <strong>Logged ✓</strong></div>
-                </div>
-              </div>
-
-              <div className="sc-step">
-                <div className="sc-step-num">5</div>
-                <div className="sc-step-body">
-                  <div className="sc-step-title">Test it — then you&apos;re done forever</div>
-                  <div className="sc-step-desc">
-                    Say &ldquo;Hey Siri, run Tracker&rdquo; and speak a log. Then come back and hit <strong>Test connection</strong> below to confirm it&apos;s working.
+                <div className="sc-step">
+                  <div className="sc-step-num">4</div>
+                  <div className="sc-step-body">
+                    <div className="sc-step-title">Add: Show Notification</div>
+                    <div className="sc-step-desc">Body: <strong>Logged ✓</strong> — quick confirmation after each log.</div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Test */}
-          <div className="sc-card" style={{ animationDelay: '0.20s' }}>
-            <div className="sc-card-label">Test Your Connection</div>
-            <p className="sc-token-note" style={{ marginBottom: 12 }}>
-              Once you&apos;ve set up the shortcut, tap below to confirm MrTracker can receive your logs.
-            </p>
-            <div className="sc-token-row">
-              <div className="sc-token-val" style={{ fontSize: 11 }}>{endpointUrl}</div>
-              <button className={`sc-copy-btn${copiedUrl ? ' copied' : ''}`}
-                onClick={() => copy(endpointUrl, 'url')}>
-                {copiedUrl ? 'Copied ✓' : 'Copy'}
-              </button>
+            {/* Right — Download */}
+            <div className="sc-card" style={{ animationDelay: '0.12s' }}>
+              <div className="sc-card-label">Quick Install</div>
+              <div className="sc-download-card">
+                <p className="sc-download-note">
+                  Download the shortcut directly to your iPhone.
+                  Your token is <strong>pre-configured</strong> — install and you&apos;re ready.
+                </p>
+                <a href="/api/shortcut" className="sc-download-btn">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" x2="12" y1="15" y2="3" />
+                  </svg>
+                  Download MrTracker.shortcut
+                </a>
+                <p className="sc-download-prompt">
+                  iOS will show a one-time prompt — &ldquo;Allow Untrusted Shortcut&rdquo;.<br />
+                  Enable it once in <strong>Settings → Shortcuts</strong> and install.
+                </p>
+              </div>
             </div>
-            <div className="sc-test-row">
-              <button className="sc-test-btn" onClick={testShortcut} disabled={testing}>
-                {testing && <span className="sc-test-spinner" />}
-                {testing ? 'Testing…' : 'Test connection'}
-              </button>
-              {testResult && (
-                <span className={`sc-test-result ${testResult.ok ? 'sc-test-ok' : 'sc-test-err'}`}>
-                  {testResult.msg}
-                </span>
-              )}
-            </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </>
