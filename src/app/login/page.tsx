@@ -294,6 +294,7 @@ export default function LoginPage() {
   const [accessDenied, setAccessDenied] = useState(false)
 
   // Survey
+  const [sessionId] = useState(() => crypto.randomUUID())
   const [qIndex, setQIndex] = useState(0)
   const [animKey, setAnimKey] = useState(0)
   const [answers, setAnswers] = useState<(string | string[] | null)[]>(Array(QUESTIONS.length).fill(null))
@@ -331,14 +332,8 @@ export default function LoginPage() {
         })
         if (!res.ok) throw new Error('Could not save. Try again.')
         setWlDoneType('waitlist')
-        // attach email to any survey response already submitted
-        if (surveyDone) {
-          fetch('/api/survey', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ answers, email: email.trim() }),
-          }).catch(() => {})
-        }
+        // attach email to the session (whether survey is done or partial)
+        saveSurvey(answers, surveyDone, email.trim())
       }
       setWlDone(true)
     } catch (err: unknown) {
@@ -348,16 +343,32 @@ export default function LoginPage() {
     }
   }
 
+  function saveSurvey(ans: (string | string[] | null)[], completed = false, emailOverride?: string) {
+    fetch('/api/survey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        answers: ans,
+        completed,
+        email: emailOverride ?? null,
+      }),
+    }).catch(() => {})
+  }
+
   function selectSingle(opt: string) {
     const next = answers.map((a, i) => i === qIndex ? opt : a)
     setAnswers(next)
+    saveSurvey(next, false)
     setTimeout(() => advance(next), 280)
   }
 
   function toggleMulti(opt: string) {
     const cur = (currentAnswer as string[] | null) ?? []
     const updated = cur.includes(opt) ? cur.filter(o => o !== opt) : [...cur, opt]
-    setAnswers(answers.map((a, i) => i === qIndex ? updated : a))
+    const next = answers.map((a, i) => i === qIndex ? updated : a)
+    setAnswers(next)
+    saveSurvey(next, false)
   }
 
   function advance(latestAnswers?: (string | string[] | null)[]) {
@@ -367,11 +378,7 @@ export default function LoginPage() {
       setAnimKey(k => k + 1)
     } else {
       setSurveyDone(true)
-      fetch('/api/survey', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: ans }),
-      }).catch(() => {})
+      saveSurvey(ans, true)
     }
   }
 
