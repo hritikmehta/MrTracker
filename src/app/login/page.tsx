@@ -112,8 +112,9 @@ body:has(.v1-login) { background: #a69c97; }
 
 /* ── Waitlist card ── */
 .lp-wl-heading {
-  font-size: 22px; font-weight: 200; letter-spacing: -0.02em;
-  color: #111; margin-bottom: 6px;
+  font-size: 13px; font-weight: 400; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(45,45,45,0.42);
+  margin-bottom: 10px;
 }
 .lp-wl-sub {
   font-size: 13px; font-weight: 300; line-height: 1.6;
@@ -410,7 +411,7 @@ export default function LoginPage() {
               <p className="lp-wl-sub">
                 {accessDenied
                   ? "Your account isn't set up yet. Drop your email and we'll reach out when ready."
-                  : "Drop your email — we'll reach out when your spot is ready."}
+                  : "We're improving MrTracker for more requests and more in-depth digests — till then, drop your email and we'll reach out when your spot is ready."}
               </p>
               <form onSubmit={handleWaitlist}>
                 <div className="lp-input-row">

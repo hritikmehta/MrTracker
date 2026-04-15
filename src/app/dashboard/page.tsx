@@ -976,7 +976,8 @@ export default function DashboardPage() {
         <h1>Tracking Made Simple.</h1>
         <p className="v1-hero-sub">
           Just speak. MrTracker handles the rest.<br />
-          One-time setup with Siri — zero taps, zero screen time, every day.
+          One-time setup with Siri —{' '}
+          <span style={{ whiteSpace: 'nowrap' }}>zero taps, zero screen time, every day.</span>
         </p>
         <div className="v1-hero-capsule-wrap">
           <div className="v1-capsule">
